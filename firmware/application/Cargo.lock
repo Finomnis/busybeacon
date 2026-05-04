@@ -38,7 +38,7 @@ dependencies = [
  "embedded-hal 1.0.0",
  "embedded-hal-async",
  "fugit",
- "rtic-time 2.0.1",
+ "rtic-time 2.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -366,7 +366,7 @@ dependencies = [
  "sdio-host",
  "static_assertions",
  "stm32-fmc",
- "stm32-metapac 21.0.0",
+ "stm32-metapac",
  "trait-set",
  "vcell",
  "volatile-register",
@@ -933,6 +933,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "rtic-common"
+version = "1.1.0"
+source = "git+https://github.com/Finomnis/rtic?branch=stm32-metapac-features#19c92adff72e037b2cfacbb8fed0128474ab3e48"
+dependencies = [
+ "critical-section",
+ "portable-atomic",
+]
+
+[[package]]
 name = "rtic-core"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -967,8 +976,7 @@ dependencies = [
 [[package]]
 name = "rtic-monotonics"
 version = "2.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "99f9923ce32637ee40c0cb28fbbc2fad880d8aebea2d545918c6971ae9be3d17"
+source = "git+https://github.com/Finomnis/rtic?branch=stm32-metapac-features#19c92adff72e037b2cfacbb8fed0128474ab3e48"
 dependencies = [
  "cfg-if",
  "cortex-m",
@@ -976,8 +984,8 @@ dependencies = [
  "portable-atomic",
  "proc-macro2",
  "quote",
- "rtic-time 2.0.1",
- "stm32-metapac 15.0.0",
+ "rtic-time 2.0.1 (git+https://github.com/Finomnis/rtic?branch=stm32-metapac-features)",
+ "stm32-metapac",
 ]
 
 [[package]]
@@ -993,7 +1001,7 @@ dependencies = [
  "heapless 0.8.0",
  "loom",
  "portable-atomic",
- "rtic-common",
+ "rtic-common 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1004,7 +1012,7 @@ checksum = "75b232e7aebc045cfea81cdd164bc2727a10aca9a4568d406d0a5661cdfd0f19"
 dependencies = [
  "critical-section",
  "futures-util",
- "rtic-common",
+ "rtic-common 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1018,7 +1026,20 @@ dependencies = [
  "embedded-hal-async",
  "fugit",
  "futures-util",
- "rtic-common",
+ "rtic-common 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "rtic-time"
+version = "2.0.1"
+source = "git+https://github.com/Finomnis/rtic?branch=stm32-metapac-features#19c92adff72e037b2cfacbb8fed0128474ab3e48"
+dependencies = [
+ "critical-section",
+ "embedded-hal 1.0.0",
+ "embedded-hal-async",
+ "fugit",
+ "futures-util",
+ "rtic-common 1.1.0 (git+https://github.com/Finomnis/rtic?branch=stm32-metapac-features)",
 ]
 
 [[package]]
@@ -1103,15 +1124,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "72692594faa67f052e5e06dd34460951c21e83bc55de4feb8d2666e2f15480a2"
 dependencies = [
  "embedded-hal 1.0.0",
-]
-
-[[package]]
-name = "stm32-metapac"
-version = "15.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "deabea56a8821dcea05d0109f3ab3135f31eb572444e5da203d06149c594c8c6"
-dependencies = [
- "cortex-m",
 ]
 
 [[package]]
