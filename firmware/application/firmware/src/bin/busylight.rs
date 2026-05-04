@@ -44,7 +44,7 @@ mod app {
     }
 
     #[init]
-    fn init(_: init::Context) -> (Shared, Local) {
+    fn init(mut cx: init::Context) -> (Shared, Local) {
         info!("init");
 
         let mut config = Config::default();
@@ -86,6 +86,10 @@ mod app {
 
         let button = Button::new(button, button_config);
 
+        // Set the ARM SLEEPONEXIT bit to go to sleep after handling interrupts
+        // See https://developer.arm.com/docs/100737/0100/power-management/sleep-mode/sleep-on-exit-bit
+        cx.core.SCB.set_sleeponexit();
+
         led_control_loop::spawn().unwrap();
 
         (Shared {}, Local { spi, button })
@@ -95,6 +99,9 @@ mod app {
     fn idle(_cx: idle::Context) -> ! {
         info!("idle");
         loop {
+            // Wait For Interrupt is used instead of a busy-wait loop
+            // to allow MCU to sleep between interrupts
+            // https://developer.arm.com/documentation/ddi0406/c/Application-Level-Architecture/Instruction-Details/Alphabetical-list-of-instructions/WFI
             rtic::export::wfi()
         }
     }
@@ -140,66 +147,3 @@ mod app {
         }
     }
 }
-
-// #[embassy_executor::main]
-// async fn main(_spawner: Spawner) {
-//     let mut config = Config::default();
-//     {
-//         use embassy_stm32::rcc::*;
-//         config.rcc.hsi = true;
-//         config.rcc.pll = Some(Pll {
-//             source: PllSource::HSI, // 16 MHz
-//             prediv: PllPreDiv::DIV1,
-//             mul: PllMul::MUL6, // 16 * 6 = 96 MHz
-//             divp: None,
-//             divq: None,
-//             divr: Some(PllRDiv::DIV2), // 96 / 2 = 48 MHz
-//         });
-//         config.rcc.sys = Sysclk::PLL1_R;
-//         config.rcc.hsi48 = Some(Hsi48Config {
-//             sync_from_usb: false,
-//         });
-//         config.rcc.mux.clk48sel = Clk48sel::HSI48;
-//     }
-
-//     let p = embassy_stm32::init(config);
-
-//     let mut spi_config = spi::Config::default();
-//     spi_config.frequency = Hertz(3_000_000);
-//     spi_config.mode = spi::MODE_1;
-
-//     let mut spi = Spi::new_txonly(p.SPI1, p.PA1, p.PA7, p.DMA1_CH5, Irqs, spi_config);
-
-//     let button = ExtiInput::new(p.PA5, p.EXTI5, Pull::Up, Irqs);
-
-//     let button_config = ButtonConfig {
-//         double_click: core::time::Duration::ZERO.try_into().unwrap(),
-//         ..Default::default()
-//     };
-
-//     let mut button = Button::new(button, button_config);
-
-//     const COLORS: [(u8, u8, u8); 3] = [(0, 255, 0), (255, 100, 0), (255, 0, 0)];
-//     const OFF_COLOR: (u8, u8, u8) = (0, 0, 0);
-
-//     let mut enabled = true;
-//     let mut color_id = 0;
-
-//     loop {
-//         if enabled && let Some(&color) = COLORS.get(color_id) {
-//             set_led(&mut spi, color).await;
-//         } else {
-//             set_led(&mut spi, OFF_COLOR).await;
-//         }
-//         match button.update().await {
-//             ButtonEvent::ShortPress { count: _ } => {
-//                 if enabled {
-//                     color_id = (color_id + 1) % COLORS.len();
-//                 }
-//             }
-//             ButtonEvent::LongPress => {
-//                 enabled = !enabled;
-//             }
-//         }
-//     }
-// }
