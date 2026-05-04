@@ -15,39 +15,45 @@ test = false
 
 
 [dependencies]
+# Project internal dependencies
 neopixel-spi-encoder = { path = "../crates/neopixel-spi-encoder" }
+async-button-rtic = { path = "../crates/async-button-rtic" }
 
+# Base Cortex-M dependencies
+cortex-m = { version = "0.7.6", features = ["critical-section-single-core"] }
+cortex-m-rt = "0.7.0"
+
+# Panic behavior
+panic-probe = { version = "1.0.0", features = ["print-defmt"] }
+
+# Logging
+defmt = "1.0.1"
+defmt-rtt = "1.0.0"
+
+# RTIC
+rtic = { version = "2.1.1", features = ["thumbv6-backend", "rtic-monotonics"] }
+rtic-sync = "1.0.2"
+rtic-monotonics = { version = "2.1.0", features = [
+    "??--chip-id--??",
+    "stm32_tim3",
+] }
+
+# HAL drivers
 embassy-stm32 = { version = "0.6.0", features = [
     "defmt",
-    "time-driver-any",
+    "unstable-pac",
     "stm32u073cc",
     "exti",
     "chrono",
 ] }
-embassy-sync = { version = "0.8.0", features = ["defmt"] }
-embassy-executor = { version = "0.10.0", features = [
-    "platform-cortex-m",
-    "executor-thread",
-    "defmt",
-] }
-embassy-time = { version = "0.5.1", features = [
-    "defmt",
-    "defmt-timestamp-uptime",
-    "tick-hz-32_768",
-] }
 embassy-usb = { version = "0.6.0", default-features = false, features = [
     "defmt",
 ] }
-embassy-futures = { version = "0.1.2" }
 
-defmt = "1.0.1"
-defmt-rtt = "1.0.0"
+# HAL abstraction definitions
+embedded-hal = "1.0.0"
+embedded-hal-async = "1.0.0"
 
-cortex-m = { version = "0.7.6", features = ["critical-section-single-core"] }
-cortex-m-rt = "0.7.0"
-panic-probe = { version = "1.0.0", features = ["print-defmt"] }
-
+# Other, user required
 micromath = "2.0.0"
 chrono = { version = "0.4.38", default-features = false }
-embedded-hal-async = "1.0.0"
-async-button = "0.2.0"
