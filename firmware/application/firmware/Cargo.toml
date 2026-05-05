@@ -46,7 +46,6 @@ embassy-stm32 = { workspace = true, features = [
     "unstable-pac",
     "stm32u073cc",
     "exti",
-    "chrono",
 ] }
 embassy-usb = { workspace = true, default-features = false, features = [
     "defmt",
