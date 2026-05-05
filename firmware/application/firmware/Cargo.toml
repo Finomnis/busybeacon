@@ -16,45 +16,43 @@ test = false
 
 [dependencies]
 # Project internal dependencies
-neopixel-spi-encoder = { path = "../crates/neopixel-spi-encoder" }
-async-button-rtic = { path = "../crates/async-button-rtic" }
+neopixel-spi-encoder.workspace = true
+async-button-rtic.workspace = true
 
 # Base Cortex-M dependencies
-cortex-m = { version = "0.7.6", features = ["critical-section-single-core"] }
-cortex-m-rt = "0.7.0"
+cortex-m = { workspace = true, features = ["critical-section-single-core"] }
+cortex-m-rt.workspace = true
 
 # Panic behavior
-panic-probe = { version = "1.0.0", features = ["print-defmt"] }
+panic-probe = { workspace = true, features = ["print-defmt"] }
 
 # Logging
-defmt = "1.0.1"
-defmt-rtt = "1.0.0"
+defmt.workspace = true
+defmt-rtt.workspace = true
 
 # RTIC
-rtic = { version = "2.1.1", features = ["thumbv6-backend", "rtic-monotonics"] }
-rtic-sync = "1.0.2"
-rtic-monotonics = { version = "2.1.0", git = "https://github.com/Finomnis/rtic", branch = "stm32-metapac-features", features = [
+rtic = { workspace = true, features = ["thumbv6-backend", "rtic-monotonics"] }
+rtic-sync.workspace = true
+rtic-monotonics = { workspace = true, features = [
     "stm32u073cc",
+    "stm32_tim2",
     "stm32_tim3",
+    "defmt",
 ] }
 portable-atomic = { version = "1", features = ["unsafe-assume-single-core"] }
 
 # HAL drivers
-embassy-stm32 = { version = "0.6.0", features = [
+embassy-stm32 = { workspace = true, features = [
     "defmt",
     "unstable-pac",
     "stm32u073cc",
     "exti",
     "chrono",
 ] }
-embassy-usb = { version = "0.6.0", default-features = false, features = [
+embassy-usb = { workspace = true, default-features = false, features = [
     "defmt",
 ] }
 
 # HAL abstraction definitions
-embedded-hal = "1.0.0"
-embedded-hal-async = "1.0.0"
-
-# Other, user required
-micromath = "2.0.0"
-chrono = { version = "0.4.38", default-features = false }
+embedded-hal.workspace = true
+embedded-hal-async.workspace = true

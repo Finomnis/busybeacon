@@ -122,7 +122,7 @@ mod app {
         const NUM_LEDS: usize = 5;
 
         async fn set_led(mut spi: impl embedded_hal_async::spi::SpiBus<u8>, color: (u8, u8, u8)) {
-            info!("Color: {:?}", color);
+            info!("{}: Color: {:?}", Mono::now(), color);
             let mut data = [0u8; neopixel_spi_encoder::buffer_size(NUM_LEDS)];
             let data = neopixel_spi_encoder::fill_with_color(&mut data, color);
             spi.write(data).await.unwrap();
