@@ -21,9 +21,24 @@ struct StreamWriter {
 
 impl Write for StreamWriter {
     fn write_str(&mut self, s: &str) -> fmt::Result {
-        let mut grant = self.queue.grant_exact(s.len()).map_err(|_| fmt::Error)?;
-        grant.copy_from_slice(s.as_bytes());
-        grant.commit(s.len());
+        let num_newlines = s.chars().filter(|&c| c == '\n').count();
+
+        let grant_len = num_newlines + s.len();
+
+        let mut grant = self.queue.grant_exact(grant_len).map_err(|_| fmt::Error)?;
+
+        let mut writer = grant.as_mut();
+
+        for char in s.chars() {
+            if char == '\n' {
+                writer[0] = b'\r';
+                writer = &mut writer[1..];
+            }
+            let len = char.encode_utf8(writer).len();
+            writer = &mut writer[len..];
+        }
+
+        grant.commit(grant_len);
 
         Ok(())
     }
@@ -67,17 +82,30 @@ pub struct UartLogHandler {
     queue: StreamConsumer<&'static LogQueue>,
 }
 
+const GREETING_MESSAGE: &str = concat!(
+    "==========================\r\nBusylight ",
+    env!("CARGO_PKG_VERSION"),
+    "\r\n"
+);
+
 impl UartLogHandler {
     pub async fn run(&mut self) {
+        let _ = self.uart.write(GREETING_MESSAGE.as_bytes()).await;
         loop {
             let grant = self.queue.wait_read().await;
+            let len = grant.len();
             let _ = self.uart.write(&grant).await;
+            grant.release(len);
         }
     }
 }
 
 pub fn init(uart: UartTx<'static, Async>) -> UartLogHandler {
-    unsafe { log::set_logger_racy(&LOGGER).unwrap() };
+    unsafe {
+        log::set_logger_racy(&LOGGER).unwrap();
+        log::set_max_level_racy(log::LevelFilter::Info);
+    }
+
     UartLogHandler {
         uart,
         queue: QUEUE.stream_consumer(),
