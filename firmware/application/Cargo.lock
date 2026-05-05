@@ -123,7 +123,6 @@ dependencies = [
  "bbqueue",
  "cortex-m",
  "cortex-m-rt",
- "critical-section",
  "embassy-stm32",
  "embassy-usb",
  "embedded-hal 1.0.0",

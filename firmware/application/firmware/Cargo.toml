@@ -22,7 +22,6 @@ async-button-rtic.workspace = true
 # Base Cortex-M dependencies
 cortex-m = { workspace = true, features = ["critical-section-single-core"] }
 cortex-m-rt.workspace = true
-critical-section.workspace = true
 
 # Logging
 log.workspace = true

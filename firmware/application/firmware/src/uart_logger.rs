@@ -1,7 +1,4 @@
-use core::{
-    cell::RefCell,
-    fmt::{self, Write},
-};
+use core::fmt::{self, Write};
 
 use bbqueue::prod_cons::stream::{StreamConsumer, StreamProducer};
 use embassy_stm32::{mode::Async, usart::UartTx};
@@ -15,17 +12,15 @@ type LogQueue =
 static QUEUE: LogQueue = LogQueue::new();
 static LOGGER: BBQueueLogger = BBQueueLogger::new(Level::Info);
 
-struct StreamWriter {
-    queue: StreamProducer<&'static LogQueue>,
-}
+struct StreamWriter<'a>(&'a StreamProducer<&'static LogQueue>);
 
-impl Write for StreamWriter {
+impl Write for StreamWriter<'_> {
     fn write_str(&mut self, s: &str) -> fmt::Result {
         let num_newlines = s.chars().filter(|&c| c == '\n').count();
 
         let grant_len = num_newlines + s.len();
 
-        let mut grant = self.queue.grant_exact(grant_len).map_err(|_| fmt::Error)?;
+        let mut grant = self.0.grant_exact(grant_len).map_err(|_| fmt::Error)?;
 
         let mut writer = grant.as_mut();
 
@@ -46,16 +41,14 @@ impl Write for StreamWriter {
 
 struct BBQueueLogger {
     level: Level,
-    queue: critical_section::Mutex<RefCell<StreamWriter>>,
+    queue: StreamProducer<&'static LogQueue>,
 }
 
 impl BBQueueLogger {
     pub const fn new(level: Level) -> Self {
         Self {
             level,
-            queue: critical_section::Mutex::new(RefCell::new(StreamWriter {
-                queue: QUEUE.stream_producer(),
-            })),
+            queue: QUEUE.stream_producer(),
         }
     }
 }
@@ -67,10 +60,12 @@ impl log::Log for BBQueueLogger {
 
     fn log(&self, record: &Record) {
         if self.enabled(record.metadata()) {
-            critical_section::with(|cs| {
-                let mut queue = self.queue.borrow(cs).borrow_mut();
-                let _ = writeln!(queue, "{} - {}", record.level(), record.args());
-            });
+            let _ = writeln!(
+                StreamWriter(&self.queue),
+                "{} - {}",
+                record.level(),
+                record.args()
+            );
         }
     }
 
