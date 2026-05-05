@@ -1,0 +1,18 @@
+[package]
+name = "async-button-rtic"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+cfg-if.workspace = true
+
+embedded-hal-async.workspace = true
+embedded-hal.workspace = true
+defmt = { workspace = true, optional = true }
+
+rtic-time.workspace = true
+fugit.workspace = true
