@@ -35,7 +35,6 @@ rtic = { workspace = true, features = ["thumbv6-backend", "rtic-monotonics"] }
 rtic-sync.workspace = true
 rtic-monotonics = { workspace = true, features = [
     "stm32u073cc",
-    "stm32_tim2",
     "stm32_tim3",
     "defmt",
 ] }
