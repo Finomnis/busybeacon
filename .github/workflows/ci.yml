@@ -88,15 +88,6 @@ jobs:
   build_firmware_bootloader:
     name: Build Bootloader Firmware
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        features:
-          - ""
-          - defmt
-          - verify
-          # Does not fit in the bootloader partition
-          # - defmt,verify
-      fail-fast: false
     steps:
       - name: Checkout sources
         uses: actions/checkout@v6
@@ -104,12 +95,28 @@ jobs:
       - name: Install toolchains
         run: rustup target add thumbv6m-none-eabi
 
+      - name: Install components
+        run: rustup component add llvm-tools
+
       - name: Install binstall
         uses: cargo-bins/cargo-binstall@main
 
       - name: Install dependencies
-        run: cargo binstall -y flip-link
+        run: cargo binstall -y flip-link cargo-binutils
 
       - name: Build
         working-directory: firmware/bootloader
-        run: cargo build --release --features=${{ matrix.features }}
+        run: cargo objcopy --release -- -O ihex target/busylight.bootloader.hex
+
+      - name: Tag hex file
+        working-directory: firmware/bootloader
+        run: |
+          export WORKSPACE_GIT_DESCRIBE=`git describe --tags --always --dirty`
+          cp target/busylight.bootlaoder.hex target/busylight.bootloader.${WORKSPACE_GIT_DESCRIBE}.hex
+
+      - name: Upload firmware hex file as artifact
+        uses: actions/upload-artifact@v7
+        with:
+          path: firmware/bootloader/target/busylight.bootloader.*.hex
+          if-no-files-found: error
+          archive: false

@@ -30,6 +30,7 @@ portable-atomic = { version = "1", default-features = false, features = [
 ] }
 
 [features]
+default = ["verify"]
 defmt = [
     "dep:defmt",
     "dep:defmt-rtt",
