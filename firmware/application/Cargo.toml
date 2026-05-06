@@ -45,12 +45,16 @@ rtic-monotonics = { version = "2.1.0", git = "https://github.com/Finomnis/rtic",
 # HAL drivers
 embassy-stm32 = "0.6.0"
 embassy-usb = { version = "0.6.0", default-features = false }
+embassy-usb-dfu = "0.3.0"
 embassy-boot-stm32 = "0.8.0"
 embassy-sync = "0.8.0"
+embassy-time = "0.5.1"
+embassy-embedded-hal = "0.6.0"
 
 # HAL abstraction definitions
 embedded-hal = "1.0.0"
 embedded-hal-async = "1.0.0"
+embedded-storage = "0.3.1"
 
 # Other
 fugit = "0.3.9"

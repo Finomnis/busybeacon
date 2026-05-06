@@ -22,6 +22,7 @@ use embassy_stm32::{
     usart, usb,
 };
 use embassy_usb::{UsbDevice, msos};
+use embassy_usb_dfu::application::{DfuAttributes, DfuState, usb_dfu};
 use log::info;
 use static_cell::ConstStaticCell;
 
@@ -36,10 +37,27 @@ bind_interrupts!(struct Irqs {
 // This is a randomly generated GUID to allow clients on Windows to find your device.
 const DEVICE_INTERFACE_GUIDS: &[&str] = &["{1d58b148-7511-410d-84b5-698f7ee0532b}"];
 
+struct DfuHandler<'d, FLASH: embedded_storage::nor_flash::NorFlash> {
+    firmware_state: BlockingFirmwareState<'d, FLASH>,
+}
+
+impl<FLASH: embedded_storage::nor_flash::NorFlash> embassy_usb_dfu::application::Handler
+    for DfuHandler<'_, FLASH>
+{
+    fn enter_dfu(&mut self) {
+        self.firmware_state
+            .mark_dfu()
+            .expect("Failed to mark DFU mode");
+        cortex_m::peripheral::SCB::sys_reset();
+    }
+}
+
 static CONFIG_DESCRIPTOR: ConstStaticCell<[u8; 256]> = ConstStaticCell::new([0u8; 256]);
 static BOS_DESCRIPTOR: ConstStaticCell<[u8; 256]> = ConstStaticCell::new([0u8; 256]);
 static MSOS_DESCRIPTOR: ConstStaticCell<[u8; 1024]> = ConstStaticCell::new([0u8; 1024]);
 static CONTROL_BUF: ConstStaticCell<[u8; 4096]> = ConstStaticCell::new([0u8; 4096]);
+static MAGIC: ConstStaticCell<embassy_boot_stm32::AlignedBuffer<WRITE_SIZE>> =
+    ConstStaticCell::new(AlignedBuffer([0; WRITE_SIZE]));
 
 use rtic_monotonics::stm32::prelude::*;
 stm32_tim2_monotonic!(Mono, 1_000_000);
@@ -47,7 +65,7 @@ stm32_tim2_monotonic!(Mono, 1_000_000);
 #[rtic::app(
     device = ::embassy_stm32::pac,
     peripherals = false,
-    dispatchers = [TIM3, TIM16] // free IRQs used by RTIC for async software tasks
+    dispatchers = [TIM15_LPTIM3, TIM16, TIM7_LPTIM2] // free IRQs used by RTIC for async software tasks
 )]
 mod app {
 
@@ -64,8 +82,11 @@ mod app {
         usb_dev: UsbDevice<'static, usb::Driver<'static, peripherals::USB>>,
     }
 
-    #[init]
-    fn init(mut cx: init::Context) -> (Shared, Local) {
+    #[init(local = [
+        flash: Option<embassy_sync::blocking_mutex::NoopMutex<RefCell<Flash<'static, embassy_stm32::flash::Blocking>>>> = None,
+        dfu_state: Option<DfuState<DfuHandler<'static, embassy_embedded_hal::flash::partition::BlockingPartition<'static, embassy_sync::blocking_mutex::raw::NoopRawMutex, Flash<'static, embassy_stm32::flash::Blocking>>>>> = None,
+    ])]
+    fn init(cx: init::Context) -> (Shared, Local) {
         let mut config = Config::default();
         {
             use embassy_stm32::rcc::*;
@@ -96,27 +117,44 @@ mod app {
         let log_handler = uart_logger::init(uart);
         info!("init");
 
+        let mut spi_config = spi::Config::default();
+        spi_config.frequency = Hertz(3_000_000);
+        spi_config.mode = spi::MODE_1;
+
+        let spi = Spi::new_txonly(p.SPI1, p.PA1, p.PA7, p.DMA1_CH3, Irqs, spi_config);
+
+        let button = ExtiInput::new(p.PA5, p.EXTI5, Pull::Up, Irqs);
+
+        let button_config = ButtonConfig {
+            double_click: 0.millis(),
+            ..Default::default()
+        };
+
+        let button = Button::new(button, button_config);
+
         let flash = Flash::new_blocking(p.FLASH);
-        let flash = embassy_sync::blocking_mutex::Mutex::new(RefCell::new(flash));
+        let flash = embassy_sync::blocking_mutex::NoopMutex::new(RefCell::new(flash));
+        let flash = cx.local.flash.insert(flash);
 
         let usb_driver = embassy_stm32::usb::Driver::new(p.USB, Irqs, p.PA12, p.PA11);
+
         let mut config = embassy_usb::Config::new(0x1209, 0xd9d0);
         config.manufacturer = Some("Finomnis");
         config.product = Some("BusyLight Bootloader");
 
-        let firmware_updater_config =
-            FirmwareUpdaterConfig::from_linkerfile_blocking(&flash, &flash);
-        let mut magic = AlignedBuffer([0; WRITE_SIZE]);
+        let firmware_updater_config = FirmwareUpdaterConfig::from_linkerfile_blocking(flash, flash);
+        let magic = MAGIC.take();
         let mut firmware_state =
             BlockingFirmwareState::from_config(firmware_updater_config, &mut magic.0);
         firmware_state.mark_booted().expect("Failed to mark booted");
 
         let dfu_handler = DfuHandler { firmware_state };
-        let mut dfu_state = DfuState::new(
+        let dfu_state = DfuState::new(
             dfu_handler,
             DfuAttributes::CAN_DOWNLOAD,
-            Duration::from_millis(2500),
+            embassy_time::Duration::from_millis(2500),
         );
+        let dfu_state = cx.local.dfu_state.insert(dfu_state);
 
         let config_descriptor = CONFIG_DESCRIPTOR.take();
         let bos_descriptor = BOS_DESCRIPTOR.take();
@@ -145,36 +183,21 @@ mod app {
             msos::PropertyData::RegMultiSz(DEVICE_INTERFACE_GUIDS),
         ));
 
-        // usb_dfu::<_, _, _, _, 4096>(&mut builder, &mut state, |func| {
-        //     // You likely don't have to add these function level headers if your USB device is not composite
-        //     // (i.e. if your device does not expose another interface in addition to DFU)
-        //     func.msos_feature(msos::CompatibleIdFeatureDescriptor::new("WINUSB", ""));
-        //     func.msos_feature(msos::RegistryPropertyFeatureDescriptor::new(
-        //         "DeviceInterfaceGUIDs",
-        //         msos::PropertyData::RegMultiSz(DEVICE_INTERFACE_GUIDS),
-        //     ));
-        // });
+        usb_dfu(&mut builder, dfu_state, |func| {
+            // You likely don't have to add these function level headers if your USB device is not composite
+            // (i.e. if your device does not expose another interface in addition to DFU)
+            func.msos_feature(msos::CompatibleIdFeatureDescriptor::new("WINUSB", ""));
+            func.msos_feature(msos::RegistryPropertyFeatureDescriptor::new(
+                "DeviceInterfaceGUIDs",
+                msos::PropertyData::RegMultiSz(DEVICE_INTERFACE_GUIDS),
+            ));
+        });
 
         let usb_dev = builder.build();
 
-        let mut spi_config = spi::Config::default();
-        spi_config.frequency = Hertz(3_000_000);
-        spi_config.mode = spi::MODE_1;
-
-        let spi = Spi::new_txonly(p.SPI1, p.PA1, p.PA7, p.DMA1_CH3, Irqs, spi_config);
-
-        let button = ExtiInput::new(p.PA5, p.EXTI5, Pull::Up, Irqs);
-
-        let button_config = ButtonConfig {
-            double_click: 0.millis(),
-            ..Default::default()
-        };
-
-        let button = Button::new(button, button_config);
-
         // Set the ARM SLEEPONEXIT bit to go to sleep after handling interrupts
         // See https://developer.arm.com/docs/100737/0100/power-management/sleep-mode/sleep-on-exit-bit
-        cx.core.SCB.set_sleeponexit();
+        // cx.core.SCB.set_sleeponexit();
 
         led_control_loop::spawn().unwrap();
         log_handler::spawn().unwrap();
@@ -207,7 +230,7 @@ mod app {
         log_handler.run().await;
     }
 
-    #[task(priority = 1, local = [usb_dev])]
+    #[task(priority = 3, local = [usb_dev])]
     async fn usb_handler(ctx: usb_handler::Context) {
         let usb_dev = ctx.local.usb_dev;
         usb_dev.run().await;
@@ -229,7 +252,12 @@ mod app {
         const NUM_LEDS: usize = 5;
 
         async fn set_led(mut spi: impl embedded_hal_async::spi::SpiBus<u8>, color: (u8, u8, u8)) {
-            info!("{}: Color: {:?}", Mono::now(), color);
+            info!(
+                "{} | {}: Color: {:?}",
+                Mono::now(),
+                embassy_time::Instant::now().as_millis(),
+                color
+            );
             let mut data = [0u8; neopixel_spi_encoder::buffer_size(NUM_LEDS)];
             let data = neopixel_spi_encoder::fill_with_color(&mut data, color);
             spi.write(data).await.unwrap();

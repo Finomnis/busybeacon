@@ -133,11 +133,15 @@ dependencies = [
  "cortex-m",
  "cortex-m-rt",
  "embassy-boot-stm32",
+ "embassy-embedded-hal",
  "embassy-stm32",
  "embassy-sync",
+ "embassy-time",
  "embassy-usb",
+ "embassy-usb-dfu",
  "embedded-hal 1.0.0",
  "embedded-hal-async",
+ "embedded-storage",
  "log",
  "neopixel-spi-encoder",
  "portable-atomic",
@@ -324,6 +328,7 @@ dependencies = [
  "embassy-futures",
  "embassy-hal-internal 0.4.0",
  "embassy-sync",
+ "embassy-time",
  "embedded-hal 0.2.7",
  "embedded-hal 1.0.0",
  "embedded-hal-async",
@@ -331,6 +336,12 @@ dependencies = [
  "embedded-storage-async",
  "nb 1.1.0",
 ]
+
+[[package]]
+name = "embassy-executor-timer-queue"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2fc328bf943af66b80b98755db9106bf7e7471b0cf47dc8559cd9a6be504cc9c"
 
 [[package]]
 name = "embassy-futures"
@@ -395,6 +406,9 @@ dependencies = [
  "embassy-hal-internal 0.5.0",
  "embassy-net-driver",
  "embassy-sync",
+ "embassy-time",
+ "embassy-time-driver",
+ "embassy-time-queue-utils",
  "embassy-usb-driver",
  "embassy-usb-synopsys-otg",
  "embedded-can",
@@ -447,6 +461,7 @@ dependencies = [
  "critical-section",
  "document-features",
  "embassy-time-driver",
+ "embassy-time-queue-utils",
  "embedded-hal 0.2.7",
  "embedded-hal 1.0.0",
  "embedded-hal-async",
@@ -463,6 +478,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "embassy-time-queue-utils"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "168297bf80aaf114b3c9ad589bf38b01b3009b9af7f97cd18086c5bbf96f5693"
+dependencies = [
+ "embassy-executor-timer-queue",
+ "heapless",
+]
+
+[[package]]
 name = "embassy-usb"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -476,6 +501,22 @@ dependencies = [
  "embassy-usb-driver",
  "embedded-io-async",
  "heapless",
+]
+
+[[package]]
+name = "embassy-usb-dfu"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e36d3678d16e1e71b052d00f7518620b5839a878f2bdab2019b81d984fb2a74f"
+dependencies = [
+ "bitflags 2.11.1",
+ "cortex-m",
+ "embassy-boot",
+ "embassy-futures",
+ "embassy-sync",
+ "embassy-time",
+ "embassy-usb",
+ "embedded-storage",
 ]
 
 [[package]]
