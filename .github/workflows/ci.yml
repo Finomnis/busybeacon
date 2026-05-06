@@ -19,6 +19,9 @@ jobs:
       - name: Install toolchains
         run: rustup target add thumbv6m-none-eabi
 
+      - name: Install components
+        run: rustup component add llvm-tools
+
       - name: Install binstall
         uses: cargo-bins/cargo-binstall@main
 
@@ -29,7 +32,7 @@ jobs:
           version: 1.0
 
       - name: Install cargo dependencies
-        run: cargo binstall -y flip-link
+        run: cargo binstall -y flip-link cargo-binutils
 
       - name: Build
         working-directory: firmware/application
