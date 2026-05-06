@@ -5,9 +5,12 @@ mod panic_handler;
 mod uart_logger;
 
 use async_button_rtic::{Button, ButtonConfig, ButtonEvent};
+use core::cell::RefCell;
+use embassy_boot_stm32::{AlignedBuffer, BlockingFirmwareState, FirmwareUpdaterConfig};
 use embassy_stm32::{
     Config, bind_interrupts, dma,
     exti::{self, ExtiInput},
+    flash::{Flash, WRITE_SIZE},
     gpio::Pull,
     interrupt,
     mode::Async,
@@ -16,15 +19,27 @@ use embassy_stm32::{
     spi,
     spi::Spi,
     time::Hertz,
+    usart, usb,
 };
+use embassy_usb::{UsbDevice, msos};
 use log::info;
+use static_cell::ConstStaticCell;
 
 bind_interrupts!(struct Irqs {
     DMA1_CHANNEL2_3 =>
         dma::InterruptHandler<peripherals::DMA1_CH2>,
         dma::InterruptHandler<peripherals::DMA1_CH3>;
     EXTI4_15 => exti::InterruptHandler<interrupt::typelevel::EXTI4_15>;
+    USB_DRD_FS => usb::InterruptHandler<peripherals::USB>;
 });
+
+// This is a randomly generated GUID to allow clients on Windows to find your device.
+const DEVICE_INTERFACE_GUIDS: &[&str] = &["{1d58b148-7511-410d-84b5-698f7ee0532b}"];
+
+static CONFIG_DESCRIPTOR: ConstStaticCell<[u8; 256]> = ConstStaticCell::new([0u8; 256]);
+static BOS_DESCRIPTOR: ConstStaticCell<[u8; 256]> = ConstStaticCell::new([0u8; 256]);
+static MSOS_DESCRIPTOR: ConstStaticCell<[u8; 1024]> = ConstStaticCell::new([0u8; 1024]);
+static CONTROL_BUF: ConstStaticCell<[u8; 4096]> = ConstStaticCell::new([0u8; 4096]);
 
 use rtic_monotonics::stm32::prelude::*;
 stm32_tim2_monotonic!(Mono, 1_000_000);
@@ -36,8 +51,6 @@ stm32_tim2_monotonic!(Mono, 1_000_000);
 )]
 mod app {
 
-    use embassy_stm32::usart;
-
     use super::*;
 
     #[shared]
@@ -48,6 +61,7 @@ mod app {
         spi: Spi<'static, Async, spi::mode::Master>,
         button: Button<ExtiInput<'static, Async>, Mono>,
         log_handler: uart_logger::UartLogHandler,
+        usb_dev: UsbDevice<'static, usb::Driver<'static, peripherals::USB>>,
     }
 
     #[init]
@@ -73,14 +87,75 @@ mod app {
 
         let p = embassy_stm32::init(config);
 
+        let tim2_hz = embassy_stm32::rcc::frequency::<embassy_stm32::peripherals::TIM2>().0;
+        Mono::start(tim2_hz);
+
         let mut uart_config = usart::Config::default();
         uart_config.baudrate = 115200;
         let uart = usart::UartTx::new(p.USART2, p.PA2, p.DMA1_CH2, Irqs, uart_config).unwrap();
         let log_handler = uart_logger::init(uart);
         info!("init");
 
-        let tim2_hz = embassy_stm32::rcc::frequency::<embassy_stm32::peripherals::TIM2>().0;
-        Mono::start(tim2_hz);
+        let flash = Flash::new_blocking(p.FLASH);
+        let flash = embassy_sync::blocking_mutex::Mutex::new(RefCell::new(flash));
+
+        let usb_driver = embassy_stm32::usb::Driver::new(p.USB, Irqs, p.PA12, p.PA11);
+        let mut config = embassy_usb::Config::new(0x1209, 0xd9d0);
+        config.manufacturer = Some("Finomnis");
+        config.product = Some("BusyLight Bootloader");
+
+        let firmware_updater_config =
+            FirmwareUpdaterConfig::from_linkerfile_blocking(&flash, &flash);
+        let mut magic = AlignedBuffer([0; WRITE_SIZE]);
+        let mut firmware_state =
+            BlockingFirmwareState::from_config(firmware_updater_config, &mut magic.0);
+        firmware_state.mark_booted().expect("Failed to mark booted");
+
+        let dfu_handler = DfuHandler { firmware_state };
+        let mut dfu_state = DfuState::new(
+            dfu_handler,
+            DfuAttributes::CAN_DOWNLOAD,
+            Duration::from_millis(2500),
+        );
+
+        let config_descriptor = CONFIG_DESCRIPTOR.take();
+        let bos_descriptor = BOS_DESCRIPTOR.take();
+        let msos_descriptor = MSOS_DESCRIPTOR.take();
+        let control_buf = CONTROL_BUF.take();
+
+        let mut builder = embassy_usb::Builder::new(
+            usb_driver,
+            config,
+            config_descriptor,
+            bos_descriptor,
+            msos_descriptor,
+            control_buf,
+        );
+
+        // We add MSOS headers so that the device automatically gets assigned the WinUSB driver on Windows.
+        // Otherwise users need to do this manually using a tool like Zadig.
+        //
+        // It seems these always need to be at added at the device level for this to work and for
+        // composite devices they also need to be added on the function level (as shown later).
+        //
+        builder.msos_descriptor(msos::windows_version::WIN8_1, 2);
+        builder.msos_feature(msos::CompatibleIdFeatureDescriptor::new("WINUSB", ""));
+        builder.msos_feature(msos::RegistryPropertyFeatureDescriptor::new(
+            "DeviceInterfaceGUIDs",
+            msos::PropertyData::RegMultiSz(DEVICE_INTERFACE_GUIDS),
+        ));
+
+        // usb_dfu::<_, _, _, _, 4096>(&mut builder, &mut state, |func| {
+        //     // You likely don't have to add these function level headers if your USB device is not composite
+        //     // (i.e. if your device does not expose another interface in addition to DFU)
+        //     func.msos_feature(msos::CompatibleIdFeatureDescriptor::new("WINUSB", ""));
+        //     func.msos_feature(msos::RegistryPropertyFeatureDescriptor::new(
+        //         "DeviceInterfaceGUIDs",
+        //         msos::PropertyData::RegMultiSz(DEVICE_INTERFACE_GUIDS),
+        //     ));
+        // });
+
+        let usb_dev = builder.build();
 
         let mut spi_config = spi::Config::default();
         spi_config.frequency = Hertz(3_000_000);
@@ -110,6 +185,7 @@ mod app {
                 spi,
                 button,
                 log_handler,
+                usb_dev,
             },
         )
     }
@@ -129,6 +205,12 @@ mod app {
     async fn log_handler(ctx: log_handler::Context) {
         let log_handler = ctx.local.log_handler;
         log_handler.run().await;
+    }
+
+    #[task(priority = 1, local = [usb_dev])]
+    async fn usb_handler(ctx: usb_handler::Context) {
+        let usb_dev = ctx.local.usb_dev;
+        usb_dev.run().await;
     }
 
     #[task(priority = 2, local = [spi, button])]

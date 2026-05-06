@@ -9,15 +9,14 @@ use cortex_m_rt::exception;
 #[cfg(feature = "defmt")]
 use defmt_rtt as _;
 use embassy_boot_stm32::*;
-use embassy_stm32::flash::{BANK1_REGION, Flash, WRITE_SIZE};
+use embassy_stm32::flash::{Flash, BANK1_REGION, WRITE_SIZE};
 use embassy_stm32::gpio::{Input, Pull};
 use embassy_stm32::rcc::mux::Clk48sel;
-use embassy_stm32::usb::Driver;
 use embassy_stm32::{bind_interrupts, peripherals, usb};
 use embassy_sync::blocking_mutex::Mutex;
-use embassy_usb::{Builder, msos};
+use embassy_usb::{msos, Builder};
 use embassy_usb_dfu::consts::DfuAttributes;
-use embassy_usb_dfu::{ResetImmediate, new_state, usb_dfu};
+use embassy_usb_dfu::{new_state, usb_dfu, ResetImmediate};
 #[cfg(feature = "defmt")]
 use panic_probe as _;
 use static_cell::ConstStaticCell;
@@ -75,8 +74,8 @@ fn main() -> ! {
     let active_offset = config.active.offset();
     let bl = BootLoader::prepare::<_, _, _, 2048>(config);
     if button.is_low() || bl.state == State::DfuDetach {
-        let driver = Driver::new(p.USB, Irqs, p.PA12, p.PA11);
-        let mut config = embassy_usb::Config::new(0xc0de, 0xcafe); // TODO: Get a proper VID:PID once this project is open sourced
+        let driver = usb::Driver::new(p.USB, Irqs, p.PA12, p.PA11);
+        let mut config = embassy_usb::Config::new(0x1209, 0xd9d0);
         config.manufacturer = Some("Finomnis");
         config.product = Some("BusyLight Bootloader");
         config.serial_number = None;
