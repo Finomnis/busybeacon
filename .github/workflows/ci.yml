@@ -112,7 +112,7 @@ jobs:
         working-directory: firmware/bootloader
         run: |
           export WORKSPACE_GIT_DESCRIBE=`git describe --tags --always --dirty`
-          cp target/busylight.bootlaoder.hex target/busylight.bootloader.${WORKSPACE_GIT_DESCRIBE}.hex
+          cp target/busylight.bootloader.hex target/busylight.bootloader.${WORKSPACE_GIT_DESCRIBE}.hex
 
       - name: Upload firmware hex file as artifact
         uses: actions/upload-artifact@v7
