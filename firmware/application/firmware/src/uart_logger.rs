@@ -19,18 +19,17 @@ impl Write for StreamWriter<'_> {
         let num_newlines = s.chars().filter(|&c| c == '\n').count();
 
         let grant_len = num_newlines + s.len();
-
         let mut grant = self.0.grant_exact(grant_len).map_err(|_| fmt::Error)?;
 
-        let mut writer = grant.as_mut();
-
-        for char in s.chars() {
-            if char == '\n' {
-                writer[0] = b'\r';
-                writer = &mut writer[1..];
+        let buf = grant.as_mut();
+        let mut i = 0;
+        for &b in s.as_bytes() {
+            if b == b'\n' {
+                buf[i] = b'\r';
+                i += 1;
             }
-            let len = char.encode_utf8(writer).len();
-            writer = &mut writer[len..];
+            buf[i] = b;
+            i += 1;
         }
 
         grant.commit(grant_len);
@@ -78,7 +77,8 @@ pub struct UartLogHandler {
 }
 
 const GREETING_MESSAGE: &str = concat!(
-    "==========================\r\nBusylight ",
+    "\r\n====================================================",
+    "\r\nBusylight ",
     env!("CARGO_PKG_VERSION"),
     "\r\n"
 );
