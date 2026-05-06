@@ -45,10 +45,12 @@ impl<FLASH: embedded_storage::nor_flash::NorFlash> embassy_usb_dfu::application:
     for DfuHandler<'_, FLASH>
 {
     fn enter_dfu(&mut self) {
-        self.firmware_state
-            .mark_dfu()
-            .expect("Failed to mark DFU mode");
-        cortex_m::peripheral::SCB::sys_reset();
+        match self.firmware_state.mark_dfu() {
+            Ok(()) => cortex_m::peripheral::SCB::sys_reset(),
+            Err(_) => {
+                log::error!("failed to mark DFU mode");
+            }
+        }
     }
 }
 
@@ -151,7 +153,7 @@ mod app {
         let dfu_handler = DfuHandler { firmware_state };
         let dfu_state = DfuState::new(
             dfu_handler,
-            DfuAttributes::WILL_DETACH,
+            DfuAttributes::CAN_DOWNLOAD | DfuAttributes::WILL_DETACH,
             embassy_time::Duration::from_millis(2500),
         );
         let dfu_state = cx.local.dfu_state.insert(dfu_state);
