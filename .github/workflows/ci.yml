@@ -28,7 +28,7 @@ jobs:
       - name: Install apt dependencies
         uses: awalsh128/cache-apt-pkgs-action@latest
         with:
-          packages: signify-openbsd
+          packages: signify-openbsd dfu-util
           version: 1.0
 
       - name: Install cargo dependencies
@@ -52,8 +52,9 @@ jobs:
           export WORKSPACE_GIT_DESCRIBE=`git describe --tags --always --dirty`
           shasum -a 512 -b target/busylight.bin | head -c128 | xxd -p -r > target/message.txt
           signify-openbsd -S -s firmware/secrets/key.sec -m target/message.txt -x target/message.txt.sig
-          cp target/busylight.bin target/busylight.${WORKSPACE_GIT_DESCRIBE}.bin
-          tail -n1 target/message.txt.sig | base64 -d -i - | dd ibs=10 skip=1 >> target/busylight.${WORKSPACE_GIT_DESCRIBE}.bin
+          cp target/busylight.bin target/busylight.${WORKSPACE_GIT_DESCRIBE}.dfu
+          tail -n1 target/message.txt.sig | base64 -d -i - | dd ibs=10 skip=1 >> target/busylight.${WORKSPACE_GIT_DESCRIBE}.dfu
+          dfu-suffix --vid 1209 --pid d9d0 --add "target/busylight.${WORKSPACE_GIT_DESCRIBE}.dfu"
           cp target/busylight.hex target/busylight.${WORKSPACE_GIT_DESCRIBE}.hex
 
       - name: Upload firmware bin file as artifact
