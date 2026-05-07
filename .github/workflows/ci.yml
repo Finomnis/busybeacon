@@ -133,3 +133,14 @@ jobs:
           path: firmware/bootloader/target/busylight.bootloader.${{env.WORKSPACE_GIT_DESCRIBE}}.hex
           if-no-files-found: error
           archive: false
+
+  build_software:
+    name: Build Bootloader Firmware
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v6
+
+      - name: Build
+        working-directory: software
+        run: cargo build
