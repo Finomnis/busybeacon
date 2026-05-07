@@ -64,6 +64,8 @@ static MAGIC: ConstStaticCell<embassy_boot_stm32::AlignedBuffer<WRITE_SIZE>> =
 use rtic_monotonics::stm32::prelude::*;
 stm32_tim2_monotonic!(Mono, 1_000_000);
 
+type BlockingFlash = Flash<'static, embassy_stm32::flash::Blocking>;
+
 #[rtic::app(
     device = ::embassy_stm32::pac,
     peripherals = false,
@@ -85,10 +87,10 @@ mod app {
     }
 
     #[init(local = [
-        flash: Option<embassy_sync::blocking_mutex::NoopMutex<RefCell<Flash<'static, embassy_stm32::flash::Blocking>>>> = None,
-        dfu_state: Option<DfuState<DfuHandler<'static, embassy_embedded_hal::flash::partition::BlockingPartition<'static, embassy_sync::blocking_mutex::raw::NoopRawMutex, Flash<'static, embassy_stm32::flash::Blocking>>>>> = None,
+        flash: Option<embassy_sync::blocking_mutex::NoopMutex<RefCell<BlockingFlash>>> = None,
+        dfu_state: Option<DfuState<DfuHandler<'static, embassy_embedded_hal::flash::partition::BlockingPartition<'static, embassy_sync::blocking_mutex::raw::NoopRawMutex, BlockingFlash>>>> = None,
     ])]
-    fn init(cx: init::Context) -> (Shared, Local) {
+    fn init(mut cx: init::Context) -> (Shared, Local) {
         let mut config = Config::default();
         {
             use embassy_stm32::rcc::*;
@@ -188,7 +190,7 @@ mod app {
 
         // Set the ARM SLEEPONEXIT bit to go to sleep after handling interrupts
         // See https://developer.arm.com/docs/100737/0100/power-management/sleep-mode/sleep-on-exit-bit
-        // cx.core.SCB.set_sleeponexit();
+        cx.core.SCB.set_sleeponexit();
 
         led_control_loop::spawn().unwrap();
         log_handler::spawn().unwrap();
