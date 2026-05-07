@@ -10,7 +10,7 @@ name: CI
 
 jobs:
   build_firmware_application:
-    name: Build Application Firmware
+    name: Application Firmware
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
@@ -84,7 +84,7 @@ jobs:
           archive: false
 
   test_firmware_application:
-    name: Run Application Firmware Tests
+    name: Firmware Tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
@@ -98,7 +98,7 @@ jobs:
         run: cargo test-host
 
   build_firmware_bootloader:
-    name: Build Bootloader Firmware
+    name: Bootloader Firmware
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
@@ -135,7 +135,7 @@ jobs:
           archive: false
 
   build_software:
-    name: Build Bootloader Firmware
+    name: Host software
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
