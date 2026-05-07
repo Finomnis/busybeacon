@@ -30,6 +30,7 @@ bbqueue.workspace = true
 # RTIC
 rtic = { workspace = true, features = ["thumbv6-backend", "rtic-monotonics"] }
 rtic-monotonics = { workspace = true, features = ["stm32u073cc", "stm32_tim2"] }
+rtic-sync.workspace = true
 futures = { workspace = true, features = ["async-await"] }
 portable-atomic = { version = "1", features = ["critical-section"] }
 

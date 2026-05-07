@@ -1,6 +1,7 @@
 #![no_std]
 #![no_main]
 
+mod led_statemachine;
 mod panic_handler;
 mod uart_logger;
 
@@ -27,6 +28,7 @@ use embassy_usb::{
     msos,
 };
 use embassy_usb_dfu::application::{DfuAttributes, DfuState, usb_dfu};
+use led_statemachine::{LedController, LedEvent};
 use log::info;
 use static_cell::ConstStaticCell;
 
@@ -93,16 +95,16 @@ const HID_REPORT_DESCRIPTOR: &[u8] = &[
 )]
 mod app {
 
-    use futures::FutureExt;
-
     use super::*;
 
     #[shared]
-    struct Shared {}
+    struct Shared {
+        led_event_sender: rtic_sync::channel::Sender<'static, LedEvent, 10>,
+    }
 
     #[local]
     struct Local {
-        spi: Spi<'static, Async, spi::mode::Master>,
+        led_controller: LedController,
         button: Button<ExtiInput<'static, Async>, Mono>,
         log_handler: uart_logger::UartLogHandler,
         usb_dev: UsbDevice<'static, usb::Driver<'static, peripherals::USB>>,
@@ -242,14 +244,20 @@ mod app {
         // See https://developer.arm.com/docs/100737/0100/power-management/sleep-mode/sleep-on-exit-bit
         cx.core.SCB.set_sleeponexit();
 
+        let (led_event_sender, led_event_receiver) = rtic_sync::make_channel!(LedEvent, 10);
+
+        let led_controller = LedController::new(spi, led_event_receiver);
+
         led_control_loop::spawn().unwrap();
         log_handler::spawn().unwrap();
         usb_handler::spawn().unwrap();
+        usb_hid_handler::spawn().unwrap();
+        button_handler::spawn().unwrap();
 
         (
-            Shared {},
+            Shared { led_event_sender },
             Local {
-                spi,
+                led_controller,
                 button,
                 log_handler,
                 usb_dev,
@@ -275,78 +283,62 @@ mod app {
         log_handler.run().await;
     }
 
-    #[task(priority = 3, local = [usb_dev])]
+    #[task(priority = 2, local = [usb_dev])]
     async fn usb_handler(ctx: usb_handler::Context) {
         let usb_dev = ctx.local.usb_dev;
         usb_dev.run().await;
     }
 
-    #[task(priority = 2, local = [spi, button, hid])]
-    async fn led_control_loop(ctx: led_control_loop::Context) {
-        info!("led_control_loop");
-
-        let mut spi = ctx.local.spi;
-        let button = ctx.local.button;
+    #[task(priority = 2, local = [hid], shared = [&led_event_sender])]
+    async fn usb_hid_handler(ctx: usb_hid_handler::Context) {
         let hid = ctx.local.hid;
-
-        const COLORS: [(u8, u8, u8); 3] = [(0, 255, 0), (255, 100, 0), (255, 0, 0)];
-        const OFF_COLOR: (u8, u8, u8) = (0, 0, 0);
-
-        let mut enabled = true;
-        let mut color_id = 0;
-
-        const NUM_LEDS: usize = 5;
-
-        async fn set_led(mut spi: impl embedded_hal_async::spi::SpiBus<u8>, color: (u8, u8, u8)) {
-            info!(
-                "{} | {}: Color: {:?}",
-                Mono::now(),
-                embassy_time::Instant::now().as_millis(),
-                color
-            );
-            let mut data = [0u8; neopixel_spi_encoder::buffer_size(NUM_LEDS)];
-            let data = neopixel_spi_encoder::fill_with_color(&mut data, color);
-            spi.write(data).await.unwrap();
-        }
+        let mut event_sender = ctx.shared.led_event_sender.clone();
 
         let hid_report = &mut [0u8; 8];
 
         loop {
-            if enabled && let Some(&color) = COLORS.get(color_id) {
-                set_led(&mut spi, color).await;
-            } else {
-                set_led(&mut spi, OFF_COLOR).await;
+            hid.ready().await;
+            if let Ok(val) = hid.read(hid_report).await
+                && val >= 1
+            {
+                match hid_report[0] {
+                    0 => {
+                        let _ = event_sender.send(LedEvent::Off).await;
+                    }
+                    1 => {
+                        let _ = event_sender.send(LedEvent::Green).await;
+                    }
+                    2 => {
+                        let _ = event_sender.send(LedEvent::Yellow).await;
+                    }
+                    3 => {
+                        let _ = event_sender.send(LedEvent::Red).await;
+                    }
+                    _ => (),
+                }
             }
-            futures::select_biased! {
-                button_event = button.update().fuse() => {
-                    match button_event {
-                        ButtonEvent::ShortPress { count: _ } => {
-                            if enabled {
-                                color_id = (color_id + 1) % COLORS.len();
-                            }
-                        }
-                        ButtonEvent::LongPress => {
-                            enabled = !enabled;
-                        }
-                    }
-                }
-                _ = async {
-                    loop {
-                        hid.ready().await;
-                        if let Ok(val) = hid.read(hid_report).await && val >= 1 {
-                            break;
-                        }
-                    }
-                }.fuse() => {
-                    match hid_report[0] {
-                        0 => enabled = false,
-                        1 => {color_id = 0; enabled = true},
-                        2 => {color_id = 1; enabled = true},
-                        3 => {color_id = 2; enabled = true},
-                        _ => (),
-                    }
-                }
-            };
         }
+    }
+
+    #[task(priority = 2, local = [button], shared = [&led_event_sender])]
+    async fn button_handler(ctx: button_handler::Context) {
+        let button = ctx.local.button;
+        let mut event_sender = ctx.shared.led_event_sender.clone();
+
+        loop {
+            match button.update().await {
+                ButtonEvent::ShortPress { count: _ } => {
+                    let _ = event_sender.send(LedEvent::ShortPress).await;
+                }
+                ButtonEvent::LongPress => {
+                    let _ = event_sender.send(LedEvent::LongPress).await;
+                }
+            }
+        }
+    }
+
+    #[task(priority = 3, local = [led_controller])]
+    async fn led_control_loop(ctx: led_control_loop::Context) {
+        ctx.local.led_controller.run().await;
     }
 }
