@@ -56,3 +56,4 @@ embedded-storage.workspace = true
 
 # Other
 static_cell.workspace = true
+git-version.workspace = true

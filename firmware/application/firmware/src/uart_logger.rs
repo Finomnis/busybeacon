@@ -2,6 +2,7 @@ use core::fmt::{self, Write};
 
 use bbqueue::prod_cons::stream::{StreamConsumer, StreamProducer};
 use embassy_stm32::{mode::Async, usart::UartTx};
+use git_version::git_version;
 use log::{Level, Metadata, Record};
 
 const LOG_QUEUE_SIZE: usize = 8192;
@@ -76,16 +77,20 @@ pub struct UartLogHandler {
     queue: StreamConsumer<&'static LogQueue>,
 }
 
-const GREETING_MESSAGE: &str = concat!(
-    "\r\n====================================================",
-    "\r\nBusylight ",
-    env!("CARGO_PKG_VERSION"),
-    "\r\n"
-);
-
 impl UartLogHandler {
     pub async fn run(&mut self) {
-        let _ = self.uart.write(GREETING_MESSAGE.as_bytes()).await;
+        let _ = self
+            .uart
+            .write(b"\r\n\r\n====================================================\r\n Busylight (git: ")
+            .await;
+        let _ = self
+            .uart
+            .write(git_version!(args = ["--tags", "--always", "--dirty"]).as_bytes())
+            .await;
+        let _ = self
+            .uart
+            .write(b")\r\n====================================================\r\n")
+            .await;
         loop {
             let grant = self.queue.wait_read().await;
             let len = grant.len();
