@@ -12,6 +12,7 @@ pub enum LedEvent {
     Yellow,
     Green,
     Off,
+    On,
     ShortPress,
     LongPress,
 }
@@ -75,6 +76,9 @@ impl LedController {
                 }
                 LedEvent::Off => {
                     enabled = false;
+                }
+                LedEvent::On => {
+                    enabled = true;
                 }
                 LedEvent::ShortPress => {
                     if enabled {
