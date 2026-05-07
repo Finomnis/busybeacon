@@ -12,7 +12,6 @@ use embassy_boot_stm32::*;
 use embassy_stm32::flash::{BANK1_REGION, Flash, WRITE_SIZE};
 use embassy_stm32::gpio::{Input, Pull};
 use embassy_stm32::rcc::mux::Clk48sel;
-use embassy_stm32::usb::Driver;
 use embassy_stm32::{bind_interrupts, peripherals, usb};
 use embassy_sync::blocking_mutex::Mutex;
 use embassy_usb::{Builder, msos};
@@ -31,7 +30,7 @@ const DEVICE_INTERFACE_GUIDS: &[&str] = &["{1d58b148-7511-410d-84b5-698f7ee0532b
 
 // This is a randomly generated example key.
 #[cfg(feature = "verify")]
-static PUBLIC_SIGNING_KEY: &[u8; 32] = include_bytes!("../secrets/key.pub.short");
+static PUBLIC_SIGNING_KEY: &[u8; 32] = include_bytes!("../secrets/key.pub.raw");
 
 static CONFIG_DESCRIPTOR: ConstStaticCell<[u8; 256]> = ConstStaticCell::new([0u8; 256]);
 static BOS_DESCRIPTOR: ConstStaticCell<[u8; 256]> = ConstStaticCell::new([0u8; 256]);
@@ -75,11 +74,10 @@ fn main() -> ! {
     let active_offset = config.active.offset();
     let bl = BootLoader::prepare::<_, _, _, 2048>(config);
     if button.is_low() || bl.state == State::DfuDetach {
-        let driver = Driver::new(p.USB, Irqs, p.PA12, p.PA11);
-        let mut config = embassy_usb::Config::new(0xc0de, 0xcafe); // TODO: Get a proper VID:PID once this project is open sourced
+        let driver = usb::Driver::new(p.USB, Irqs, p.PA12, p.PA11);
+        let mut config = embassy_usb::Config::new(0x1209, 0xd9d0);
         config.manufacturer = Some("Finomnis");
         config.product = Some("BusyLight Bootloader");
-        config.serial_number = None;
 
         let fw_config = FirmwareUpdaterConfig::from_linkerfile_blocking(&flash, &flash);
         let mut buffer = AlignedBuffer([0; WRITE_SIZE]);
@@ -127,7 +125,7 @@ fn main() -> ! {
             msos::PropertyData::RegMultiSz(DEVICE_INTERFACE_GUIDS),
         ));
 
-        usb_dfu::<_, _, _, _, 4096>(&mut builder, &mut state, |func| {
+        usb_dfu::<_, _, _, _, 2048>(&mut builder, &mut state, |func| {
             // You likely don't have to add these function level headers if your USB device is not composite
             // (i.e. if your device does not expose another interface in addition to DFU)
             func.msos_feature(msos::CompatibleIdFeatureDescriptor::new("WINUSB", ""));

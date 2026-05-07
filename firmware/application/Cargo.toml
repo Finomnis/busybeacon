@@ -39,18 +39,25 @@ bbqueue = "0.7.0"
 
 # RTIC
 rtic = "2.1.0"
-rtic-sync = "1.0.2"
-rtic-time = { version = "2.0.1", git = "https://github.com/Finomnis/rtic", branch = "stm32u0" }
-rtic-monotonics = { version = "2.1.0", git = "https://github.com/Finomnis/rtic", branch = "stm32u0" }
+rtic-time = { version = "2.0.1", git = "https://github.com/Finomnis/rtic", branch = "fix_monotonics_stm32_timer2" }
+rtic-monotonics = { version = "2.1.0", git = "https://github.com/Finomnis/rtic", branch = "fix_monotonics_stm32_timer2" }
 
 # HAL drivers
 embassy-stm32 = "0.6.0"
 embassy-usb = { version = "0.6.0", default-features = false }
+embassy-usb-dfu = "0.3.0"
+embassy-boot-stm32 = "0.8.0"
+embassy-sync = "0.8.0"
+embassy-time = "0.5.1"
+embassy-embedded-hal = "0.6.0"
 
 # HAL abstraction definitions
 embedded-hal = "1.0.0"
 embedded-hal-async = "1.0.0"
+embedded-storage = "0.3.1"
 
 # Other
 fugit = "0.3.9"
 cfg-if = "1.0.0"
+static_cell = "2.1.1"
+git-version = "0.3.9"

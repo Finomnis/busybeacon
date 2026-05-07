@@ -30,6 +30,7 @@ portable-atomic = { version = "1", default-features = false, features = [
 ] }
 
 [features]
+# default = ["verify"]
 defmt = [
     "dep:defmt",
     "dep:defmt-rtt",
@@ -52,8 +53,8 @@ overflow-checks = true
 [profile.release]
 codegen-units = 1
 debug = 2
-debug-assertions = true
+debug-assertions = false
 incremental = false
 lto = 'fat'
 opt-level = 'z'
-overflow-checks = true
+overflow-checks = false

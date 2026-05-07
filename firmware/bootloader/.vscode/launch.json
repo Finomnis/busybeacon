@@ -7,7 +7,7 @@
         {
             "type": "probe-rs-debug",
             "request": "launch",
-            "name": "probe-rs Test",
+            "name": "probe-rs Launch",
             "cwd": "${workspaceFolder}",
             "connectUnderReset": false,
             "chip": "STM32U073CC",
@@ -18,7 +18,20 @@
             "coreConfigs": [
                 {
                     "coreIndex": 0,
-                    "programBinary": "./target/thumbv6m-none-eabi/debug/busylight-bootloader"
+                    "programBinary": "./target/thumbv6m-none-eabi/release/busylight-bootloader"
+                }
+            ]
+        },
+        {
+            "name": "probe-rs Attach",
+            "type": "probe-rs-debug",
+            "request": "attach",
+            "cwd": "${workspaceFolder}",
+            "chip": "STM32U073CC",
+            "coreConfigs": [
+                {
+                    "coreIndex": 0,
+                    "programBinary": "./target/thumbv6m-none-eabi/release/busylight-bootloader"
                 }
             ]
         }

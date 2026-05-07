@@ -29,7 +29,6 @@ bbqueue.workspace = true
 
 # RTIC
 rtic = { workspace = true, features = ["thumbv6-backend", "rtic-monotonics"] }
-rtic-sync.workspace = true
 rtic-monotonics = { workspace = true, features = ["stm32u073cc", "stm32_tim2"] }
 portable-atomic = { version = "1", features = ["critical-section"] }
 
@@ -38,9 +37,23 @@ embassy-stm32 = { workspace = true, features = [
     "unstable-pac",
     "stm32u073cc",
     "exti",
+    "time-driver-tim3",
 ] }
-embassy-usb = { workspace = true, default-features = false, features = [] }
+embassy-time = { workspace = true, features = [
+    "generic-queue-8",
+    "tick-hz-32_768",
+] }
+embassy-usb.workspace = true
+embassy-usb-dfu = { workspace = true, features = ["application", "cortex-m"] }
+embassy-boot-stm32.workspace = true
+embassy-sync.workspace = true
+embassy-embedded-hal.workspace = true
 
 # HAL abstraction definitions
 embedded-hal.workspace = true
 embedded-hal-async.workspace = true
+embedded-storage.workspace = true
+
+# Other
+static_cell.workspace = true
+git-version.workspace = true

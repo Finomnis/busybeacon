@@ -15,19 +15,73 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Install toolchains
         run: rustup target add thumbv6m-none-eabi
 
+      - name: Install components
+        run: rustup component add llvm-tools
+
       - name: Install binstall
         uses: cargo-bins/cargo-binstall@main
 
-      - name: Install dependencies
-        run: cargo binstall -y flip-link
+      - name: Install apt dependencies
+        uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: signify-openbsd dfu-util
+          version: 1.0
+
+      - name: Install cargo dependencies
+        run: cargo binstall -y flip-link cargo-binutils
+
+      - name: Query git version
+        run: |
+          echo "WORKSPACE_GIT_DESCRIBE=$(git describe --tags --always --dirty)" >> $GITHUB_ENV
 
       - name: Build
         working-directory: firmware/application
         run: cargo build --release
+
+      - name: Create firmware bin file
+        working-directory: firmware/application
+        run: |
+          cargo objcopy --release -- -O binary target/busylight.${WORKSPACE_GIT_DESCRIBE}.dfu
+
+      - name: Create firmware hex file
+        working-directory: firmware/application
+        run: |
+          cargo objcopy --release -- -O ihex target/busylight.${WORKSPACE_GIT_DESCRIBE}.hex
+
+      #   - name: Sign firmware file
+      #     working-directory: firmware/application
+      #     run: |
+      #       shasum -a 512 -b target/busylight.bin | head -c128 | xxd -p -r > target/message.txt
+      #       signify-openbsd -S -s firmware/secrets/key.sec -m target/message.txt -x target/message.txt.sig
+      #       cp target/busylight.bin target/busylight.${WORKSPACE_GIT_DESCRIBE}.dfu
+      #       tail -n1 target/message.txt.sig | base64 -d -i - | dd ibs=10 skip=1 >> target/busylight.${WORKSPACE_GIT_DESCRIBE}.dfu
+      #       dfu-suffix --vid 1209 --pid d9d0 --add "target/busylight.${WORKSPACE_GIT_DESCRIBE}.dfu"
+      #       cp target/busylight.hex target/busylight.${WORKSPACE_GIT_DESCRIBE}.hex
+
+      - name: Post-process firmware files
+        working-directory: firmware/application
+        run: |
+          dfu-suffix --vid 1209 --pid d9d0 --add "target/busylight.${WORKSPACE_GIT_DESCRIBE}.dfu"
+
+      - name: Upload firmware dfu file as artifact
+        uses: actions/upload-artifact@v7
+        with:
+          path: firmware/application/target/busylight.${{env.WORKSPACE_GIT_DESCRIBE}}.dfu
+          if-no-files-found: error
+          archive: false
+
+      - name: Upload firmware hex file as artifact
+        uses: actions/upload-artifact@v7
+        with:
+          path: firmware/application/target/busylight.${{env.WORKSPACE_GIT_DESCRIBE}}.hex
+          if-no-files-found: error
+          archive: false
 
   test_firmware_application:
     name: Run Application Firmware Tests
@@ -46,28 +100,36 @@ jobs:
   build_firmware_bootloader:
     name: Build Bootloader Firmware
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        features:
-          - ""
-          - defmt
-          - verify
-          # Does not fit in the bootloader partition
-          # - defmt,verify
-      fail-fast: false
     steps:
       - name: Checkout sources
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Install toolchains
         run: rustup target add thumbv6m-none-eabi
+
+      - name: Install components
+        run: rustup component add llvm-tools
 
       - name: Install binstall
         uses: cargo-bins/cargo-binstall@main
 
       - name: Install dependencies
-        run: cargo binstall -y flip-link
+        run: cargo binstall -y flip-link cargo-binutils
+
+      - name: Query git version
+        run: |
+          echo "WORKSPACE_GIT_DESCRIBE=$(git describe --tags --always --dirty)" >> $GITHUB_ENV
 
       - name: Build
         working-directory: firmware/bootloader
-        run: cargo build --release --features=${{ matrix.features }}
+        run: |
+          cargo objcopy --release -- -O ihex target/busylight.bootloader.${WORKSPACE_GIT_DESCRIBE}.hex
+
+      - name: Upload firmware hex file as artifact
+        uses: actions/upload-artifact@v7
+        with:
+          path: firmware/bootloader/target/busylight.bootloader.${{env.WORKSPACE_GIT_DESCRIBE}}.hex
+          if-no-files-found: error
+          archive: false
