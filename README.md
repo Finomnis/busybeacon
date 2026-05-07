@@ -32,7 +32,7 @@ Intended to be mounted to your monitor and updated whenever your current state c
 - 3D Printed Case
     - coming soon
 - LEDs: BTF-LIGHTING 144LEDs/m WS2812B
-    - German amazon: https://amzn.eu/d/06CgZDho
+    - German Amazon: https://amzn.eu/d/06CgZDho
     - 3 LEDs needed per device
 
 ## Firmware
