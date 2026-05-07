@@ -21,7 +21,11 @@ use embassy_stm32::{
     time::Hertz,
     usart, usb,
 };
-use embassy_usb::{UsbDevice, msos};
+use embassy_usb::{
+    UsbDevice,
+    class::hid::{self, HidBootProtocol, HidReaderWriter, HidSubclass},
+    msos,
+};
 use embassy_usb_dfu::application::{DfuAttributes, DfuState, usb_dfu};
 use log::info;
 use static_cell::ConstStaticCell;
@@ -66,12 +70,30 @@ stm32_tim2_monotonic!(Mono, 1_000_000);
 
 type BlockingFlash = Flash<'static, embassy_stm32::flash::Blocking>;
 
+const HID_REPORT_DESCRIPTOR: &[u8] = &[
+    0x06, 0x00, 0xff, // Usage Page: vendor-defined 0xff00
+    0x09, 0x01, // Usage: 1
+    0xa1, 0x01, // Collection: Application
+    //
+    // Output report: 1 byte, values 0..3.
+    0x09, 0x01, // Usage: busy state
+    0x15, 0x00, // Logical min 0
+    0x25, 0x03, // Logical max 3
+    0x75, 0x08, // Report size 8 bits
+    0x95, 0x01, // Report count 1
+    0x91, 0x02, // Output: Data,Var,Abs
+    //
+    0xc0, // End collection
+];
+
 #[rtic::app(
     device = ::embassy_stm32::pac,
     peripherals = false,
     dispatchers = [TIM15_LPTIM3, TIM16, TIM7_LPTIM2] // free IRQs used by RTIC for async software tasks
 )]
 mod app {
+
+    use futures::FutureExt;
 
     use super::*;
 
@@ -84,11 +106,13 @@ mod app {
         button: Button<ExtiInput<'static, Async>, Mono>,
         log_handler: uart_logger::UartLogHandler,
         usb_dev: UsbDevice<'static, usb::Driver<'static, peripherals::USB>>,
+        hid: HidReaderWriter<'static, usb::Driver<'static, peripherals::USB>, 8, 8>,
     }
 
     #[init(local = [
         flash: Option<embassy_sync::blocking_mutex::NoopMutex<RefCell<BlockingFlash>>> = None,
         dfu_state: Option<DfuState<DfuHandler<'static, embassy_embedded_hal::flash::partition::BlockingPartition<'static, embassy_sync::blocking_mutex::raw::NoopRawMutex, BlockingFlash>>>> = None,
+        hid_state: Option<hid::State<'static>> = None,
     ])]
     fn init(mut cx: init::Context) -> (Shared, Local) {
         let mut config = Config::default();
@@ -145,6 +169,7 @@ mod app {
         let mut config = embassy_usb::Config::new(0x1209, 0xd9d0);
         config.manufacturer = Some("Finomnis");
         config.product = Some("BusyLight");
+        config.serial_number = Some(embassy_stm32::uid::uid_hex());
 
         let firmware_updater_config = FirmwareUpdaterConfig::from_linkerfile_blocking(flash, flash);
         let magic = MAGIC.take();
@@ -173,6 +198,20 @@ mod app {
             msos_descriptor,
             control_buf,
         );
+
+        // --- HID busy-light interface ---
+        let hid_state = cx.local.hid_state.insert(hid::State::new());
+
+        let hid_config = hid::Config {
+            report_descriptor: HID_REPORT_DESCRIPTOR,
+            request_handler: None,
+            poll_ms: 10,
+            max_packet_size: 8,
+            hid_subclass: HidSubclass::No,
+            hid_boot_protocol: HidBootProtocol::None,
+        };
+
+        let hid = hid::HidReaderWriter::<_, 8, 8>::new(&mut builder, hid_state, hid_config);
 
         // We add MSOS headers so that the device automatically gets assigned the WinUSB driver on Windows.
         // Otherwise users need to do this manually using a tool like Zadig.
@@ -214,6 +253,7 @@ mod app {
                 button,
                 log_handler,
                 usb_dev,
+                hid,
             },
         )
     }
@@ -241,12 +281,13 @@ mod app {
         usb_dev.run().await;
     }
 
-    #[task(priority = 2, local = [spi, button])]
+    #[task(priority = 2, local = [spi, button, hid])]
     async fn led_control_loop(ctx: led_control_loop::Context) {
         info!("led_control_loop");
 
         let mut spi = ctx.local.spi;
         let button = ctx.local.button;
+        let hid = ctx.local.hid;
 
         const COLORS: [(u8, u8, u8); 3] = [(0, 255, 0), (255, 100, 0), (255, 0, 0)];
         const OFF_COLOR: (u8, u8, u8) = (0, 0, 0);
@@ -268,22 +309,44 @@ mod app {
             spi.write(data).await.unwrap();
         }
 
+        let hid_report = &mut [0u8; 8];
+
         loop {
             if enabled && let Some(&color) = COLORS.get(color_id) {
                 set_led(&mut spi, color).await;
             } else {
                 set_led(&mut spi, OFF_COLOR).await;
             }
-            match button.update().await {
-                ButtonEvent::ShortPress { count: _ } => {
-                    if enabled {
-                        color_id = (color_id + 1) % COLORS.len();
+            futures::select_biased! {
+                button_event = button.update().fuse() => {
+                    match button_event {
+                        ButtonEvent::ShortPress { count: _ } => {
+                            if enabled {
+                                color_id = (color_id + 1) % COLORS.len();
+                            }
+                        }
+                        ButtonEvent::LongPress => {
+                            enabled = !enabled;
+                        }
                     }
                 }
-                ButtonEvent::LongPress => {
-                    enabled = !enabled;
+                _ = async {
+                    loop {
+                        hid.ready().await;
+                        if let Ok(val) = hid.read(hid_report).await && val >= 1 {
+                            break;
+                        }
+                    }
+                }.fuse() => {
+                    match hid_report[0] {
+                        0 => enabled = false,
+                        1 => {color_id = 0; enabled = true},
+                        2 => {color_id = 1; enabled = true},
+                        3 => {color_id = 2; enabled = true},
+                        _ => (),
+                    }
                 }
-            }
+            };
         }
     }
 }
