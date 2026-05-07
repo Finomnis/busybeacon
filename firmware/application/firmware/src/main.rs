@@ -75,7 +75,7 @@ const HID_REPORT_DESCRIPTOR: &[u8] = &[
     0x09, 0x01, // Usage: 1
     0xa1, 0x01, // Collection: Application
     //
-    // Output report: 1 byte, values 0..2.
+    // Output report: 1 byte, values 0..3.
     0x09, 0x01, // Usage: busy state
     0x15, 0x00, // Logical min 0
     0x25, 0x03, // Logical max 3
