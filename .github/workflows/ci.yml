@@ -34,22 +34,27 @@ jobs:
       - name: Install cargo dependencies
         run: cargo binstall -y flip-link cargo-binutils
 
+      - name: Query git version
+        run: |
+          echo "WORKSPACE_GIT_DESCRIBE=$(git describe --tags --always --dirty)" >> $GITHUB_ENV
+
       - name: Build
         working-directory: firmware/application
         run: cargo build --release
 
       - name: Create firmware bin file
         working-directory: firmware/application
-        run: cargo objcopy --release -- -O binary target/busylight.bin
+        run: |
+          cargo objcopy --release -- -O binary target/busylight.${WORKSPACE_GIT_DESCRIBE}.dfu
 
       - name: Create firmware hex file
         working-directory: firmware/application
-        run: cargo objcopy --release -- -O ihex target/busylight.hex
+        run: |
+          cargo objcopy --release -- -O ihex target/busylight.${WORKSPACE_GIT_DESCRIBE}.hex
 
       #   - name: Sign firmware file
       #     working-directory: firmware/application
       #     run: |
-      #       export WORKSPACE_GIT_DESCRIBE=`git describe --tags --always --dirty`
       #       shasum -a 512 -b target/busylight.bin | head -c128 | xxd -p -r > target/message.txt
       #       signify-openbsd -S -s firmware/secrets/key.sec -m target/message.txt -x target/message.txt.sig
       #       cp target/busylight.bin target/busylight.${WORKSPACE_GIT_DESCRIBE}.dfu
@@ -60,22 +65,19 @@ jobs:
       - name: Post-process firmware files
         working-directory: firmware/application
         run: |
-          export WORKSPACE_GIT_DESCRIBE=`git describe --tags --always --dirty`
-          cp target/busylight.hex target/busylight.${WORKSPACE_GIT_DESCRIBE}.hex
-          cp target/busylight.bin target/busylight.${WORKSPACE_GIT_DESCRIBE}.dfu
           dfu-suffix --vid 1209 --pid d9d0 --add "target/busylight.${WORKSPACE_GIT_DESCRIBE}.dfu"
 
       - name: Upload firmware dfu file as artifact
         uses: actions/upload-artifact@v7
         with:
-          path: firmware/application/target/busylight.*.dfu
+          path: firmware/application/target/busylight.${WORKSPACE_GIT_DESCRIBE}.dfu
           if-no-files-found: error
           archive: false
 
       - name: Upload firmware hex file as artifact
         uses: actions/upload-artifact@v7
         with:
-          path: firmware/application/target/busylight.*.hex
+          path: firmware/application/target/busylight.${WORKSPACE_GIT_DESCRIBE}.hex
           if-no-files-found: error
           archive: false
 
@@ -112,19 +114,18 @@ jobs:
       - name: Install dependencies
         run: cargo binstall -y flip-link cargo-binutils
 
+      - name: Query git version
+        run: |
+          echo "WORKSPACE_GIT_DESCRIBE=$(git describe --tags --always --dirty)" >> $GITHUB_ENV
+
       - name: Build
         working-directory: firmware/bootloader
-        run: cargo objcopy --release -- -O ihex target/busylight.bootloader.hex
-
-      - name: Tag hex file
-        working-directory: firmware/bootloader
         run: |
-          export WORKSPACE_GIT_DESCRIBE=`git describe --tags --always --dirty`
-          cp target/busylight.bootloader.hex target/busylight.bootloader.${WORKSPACE_GIT_DESCRIBE}.hex
+          cargo objcopy --release -- -O ihex target/busylight.bootloader.${WORKSPACE_GIT_DESCRIBE}.hex
 
       - name: Upload firmware hex file as artifact
         uses: actions/upload-artifact@v7
         with:
-          path: firmware/bootloader/target/busylight.bootloader.*.hex
+          path: firmware/bootloader/target/busylight.bootloader.${WORKSPACE_GIT_DESCRIBE}.hex
           if-no-files-found: error
           archive: false
