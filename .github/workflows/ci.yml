@@ -10,7 +10,7 @@ name: CI
 
 jobs:
   build_firmware_application:
-    name: Build Application Firmware
+    name: Application Firmware
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
@@ -84,7 +84,7 @@ jobs:
           archive: false
 
   test_firmware_application:
-    name: Run Application Firmware Tests
+    name: Firmware Tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
@@ -98,7 +98,7 @@ jobs:
         run: cargo test-host
 
   build_firmware_bootloader:
-    name: Build Bootloader Firmware
+    name: Bootloader Firmware
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
@@ -133,3 +133,20 @@ jobs:
           path: firmware/bootloader/target/busylight.bootloader.${{env.WORKSPACE_GIT_DESCRIBE}}.hex
           if-no-files-found: error
           archive: false
+
+  build_software:
+    name: Host software
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v6
+
+      - name: Install apt dependencies
+        uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: libudev-dev
+          version: 1.0
+
+      - name: Build
+        working-directory: software
+        run: cargo build
