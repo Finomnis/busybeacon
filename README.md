@@ -10,8 +10,8 @@ Intended to be mounted to your monitor and updated whenever your current state c
 
 ### Color Meanings
 - 🟢 **Green** - Can be talked to casually.
-- 🟡 **Yellow** - Concentrated, only ready to talk about the current project.
-- 🔴 **Red** - In the Zone, do not talk to unless absolutely necessary.
+- 🟡 **Yellow** - Concentrated, only talk to about the current project.
+- 🔴 **Red** - In the zone, do not talk to unless absolutely necessary.
 
 ### Controls
 
