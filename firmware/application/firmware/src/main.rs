@@ -110,18 +110,23 @@ impl UsbEventHandler {
     fn update_leds(&mut self) {
         let should_be_on = self.addressed && !self.suspended;
 
+        let mut success = true;
+
         if self.was_already_connected && (should_be_on != self.was_on_previously) {
-            if should_be_on {
-                let _ = self.queue.try_send(LedEvent::ExitSleep);
+            success = if should_be_on {
+                self.queue.try_send(LedEvent::ExitSleep)
             } else {
-                let _ = self.queue.try_send(LedEvent::EnterSleep);
+                self.queue.try_send(LedEvent::EnterSleep)
             }
+            .is_ok();
         }
 
         if should_be_on {
             self.was_already_connected = true;
         }
-        self.was_on_previously = should_be_on;
+        if success {
+            self.was_on_previously = should_be_on;
+        }
     }
 }
 impl embassy_usb::Handler for UsbEventHandler {
