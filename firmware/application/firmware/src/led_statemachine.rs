@@ -9,7 +9,8 @@ pub enum LedEvent {
     Yellow,
     Green,
     Off,
-    On,
+    EnterSleep,
+    ExitSleep,
     ShortPress,
     LongPress,
 }
@@ -43,9 +44,13 @@ impl LedController {
 
         let mut enabled = true;
         let mut color_id = 0;
+        let mut sleep = false;
 
         loop {
-            if enabled && let Some(&color) = COLORS.get(color_id) {
+            if enabled
+                && !sleep
+                && let Some(&color) = COLORS.get(color_id)
+            {
                 self.set_led(color).await;
             } else {
                 self.set_led(OFF_COLOR).await;
@@ -56,29 +61,42 @@ impl LedController {
             match event {
                 LedEvent::Red => {
                     enabled = true;
+                    sleep = false;
                     color_id = 2;
                 }
                 LedEvent::Yellow => {
                     enabled = true;
+                    sleep = false;
                     color_id = 1;
                 }
                 LedEvent::Green => {
                     enabled = true;
+                    sleep = false;
                     color_id = 0;
                 }
                 LedEvent::Off => {
                     enabled = false;
                 }
-                LedEvent::On => {
-                    enabled = true;
+                LedEvent::EnterSleep => {
+                    sleep = true;
+                }
+                LedEvent::ExitSleep => {
+                    sleep = false;
                 }
                 LedEvent::ShortPress => {
-                    if enabled {
+                    if sleep {
+                        sleep = false;
+                    } else if enabled {
                         color_id = (color_id + 1) % COLORS.len();
                     }
                 }
                 LedEvent::LongPress => {
-                    enabled = !enabled;
+                    if sleep {
+                        sleep = false;
+                        enabled = true;
+                    } else {
+                        enabled = !enabled;
+                    }
                 }
             }
         }

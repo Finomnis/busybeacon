@@ -94,6 +94,7 @@ struct UsbEventHandler {
     was_already_connected: bool,
     suspended: bool,
     addressed: bool,
+    was_on_previously: bool,
 }
 impl UsbEventHandler {
     pub fn new(queue: rtic_sync::channel::Sender<'static, LedEvent, 10>) -> Self {
@@ -102,23 +103,25 @@ impl UsbEventHandler {
             was_already_connected: false,
             suspended: false,
             addressed: false,
+            was_on_previously: false,
         }
     }
 
     fn update_leds(&mut self) {
         let should_be_on = self.addressed && !self.suspended;
 
-        if self.was_already_connected {
+        if self.was_already_connected && (should_be_on != self.was_on_previously) {
             if should_be_on {
-                self.queue.try_send(LedEvent::On).unwrap();
+                self.queue.try_send(LedEvent::ExitSleep).unwrap();
             } else {
-                self.queue.try_send(LedEvent::Off).unwrap();
+                self.queue.try_send(LedEvent::EnterSleep).unwrap();
             }
         }
 
         if should_be_on {
             self.was_already_connected = true;
         }
+        self.was_on_previously = should_be_on;
     }
 }
 impl embassy_usb::Handler for UsbEventHandler {
