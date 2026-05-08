@@ -112,9 +112,9 @@ impl UsbEventHandler {
 
         if self.was_already_connected && (should_be_on != self.was_on_previously) {
             if should_be_on {
-                self.queue.try_send(LedEvent::ExitSleep).unwrap();
+                let _ = self.queue.try_send(LedEvent::ExitSleep);
             } else {
-                self.queue.try_send(LedEvent::EnterSleep).unwrap();
+                let _ = self.queue.try_send(LedEvent::EnterSleep);
             }
         }
 
