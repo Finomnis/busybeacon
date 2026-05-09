@@ -1,5 +1,11 @@
 # Busylight
 
+
+<img src=".media/busylight_green.webp" alt="Green" width="40%">
+<img src=".media/busylight_yellow.webp" alt="Green" width="40%">
+<img src=".media/busylight_red.webp" alt="Green" width="40%">
+
+
 ![Green](/.media/busylight_green_small.jpg)
 ![Yellow](/.media/busylight_yellow_small.jpg)
 ![Red](/.media/busylight_red_small.jpg)
