@@ -22,3 +22,5 @@ cargo program --release
 ```
 cargo objcopy --release -- -O ihex app.hex
 ```
+
+### Generate dfu file
