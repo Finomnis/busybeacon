@@ -11,7 +11,19 @@ Before getting started, you need Rust/Cargo installed.
 
 See https://rustup.rs/.
 
-You also need to install [`flip-link`](https://github.com/knurling-rs/flip-link).
+### Further dependencies
+
+- `flip-link`
+  ```shell
+  cargo install flip-link
+  ```
+
+- `cargo objcopy`
+  ```
+  rustup component add llvm-tools
+  cargo install cargo-binutils
+  ```
+
 
 ## Application
 
