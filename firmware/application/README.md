@@ -14,7 +14,7 @@ See https://rustup.rs/.
 
 ```
 cargo build --release
-cargo flash --release
+cargo program --release
 ```
 
 ### Generate hex
