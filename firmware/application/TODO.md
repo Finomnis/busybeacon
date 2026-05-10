@@ -1,6 +1,0 @@
-- [ ] Rewrite as RTIC
-  - base on https://github.com/knurling-rs/app-template
-  - add flip-link
-- [ ] log + bbqueue + uart
-- [ ] uart panic handler
-- [ ] USB DFU + HID for LED color

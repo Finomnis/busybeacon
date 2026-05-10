@@ -24,3 +24,8 @@ cargo objcopy --release -- -O ihex app.hex
 ```
 
 ### Generate dfu file
+
+```
+cargo objcopy --release -- -O binary app.dfu
+dfu-suffix --vid 1209 --pid d9d0 --add app.dfu
+```
