@@ -1,0 +1,78 @@
+// {
+//     // Use IntelliSense to learn about possible attributes.
+//     // Hover to view descriptions of existing attributes.
+//     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+//     "version": "0.2.0",
+//     "configurations": [
+//         {
+//             "name": "probe-rs Launch",
+//             "type": "probe-rs-debug",
+//             "request": "launch",
+//             "cwd": "${workspaceFolder}",
+//             "connectUnderReset": false,
+//             "chip": "STM32U073CC",
+//             "flashingConfig": {
+//                 "flashingEnabled": true,
+//                 "haltAfterReset": true
+//             },
+//             "coreConfigs": [
+//                 {
+//                     "coreIndex": 0,
+//                     "programBinary": "./target/thumbv6m-none-eabi/debug/busylight"
+//                 }
+//             ]
+//         },
+//         {
+//             "name": "probe-rs Attach",
+//             "type": "probe-rs-debug",
+//             "request": "attach",
+//             "cwd": "${workspaceFolder}",
+//             "chip": "STM32U073CC",
+//             "coreConfigs": [
+//                 {
+//                     "coreIndex": 0,
+//                     "programBinary": "./target/thumbv6m-none-eabi/debug/busylight"
+//                 }
+//             ]
+//         }
+//     ]
+// }
+// {
+//     // Use IntelliSense to learn about possible attributes.
+//     // Hover to view descriptions of existing attributes.
+//     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+//     "version": "0.2.0",
+//     "configurations": [
+//         {
+//             "type": "probe-rs-debug",
+//             "request": "launch",
+//             "name": "probe-rs Launch",
+//             "cwd": "${workspaceFolder}",
+//             "connectUnderReset": false,
+//             "chip": "STM32U073CC",
+//             "flashingConfig": {
+//                 "flashingEnabled": true,
+//                 "haltAfterReset": true
+//             },
+//             "coreConfigs": [
+//                 {
+//                     "coreIndex": 0,
+//                     "programBinary": "./target/thumbv6m-none-eabi/release/busylight-bootloader"
+//                 }
+//             ]
+//         },
+//         {
+//             "name": "probe-rs Attach",
+//             "type": "probe-rs-debug",
+//             "request": "attach",
+//             "cwd": "${workspaceFolder}",
+//             "chip": "STM32U073CC",
+//             "coreConfigs": [
+//                 {
+//                     "coreIndex": 0,
+//                     "programBinary": "./target/thumbv6m-none-eabi/release/busylight-bootloader"
+//                 }
+//             ]
+//         }
+//     ]
+// }

@@ -1,0 +1,71 @@
+[workspace]
+resolver = "3"
+members = ["application", "bootloader", "core", "crates/*"]
+default-members = ["application"]
+
+[workspace.package]
+version = "0.3.0"
+edition = "2024"
+rust-version = "1.94"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/Finomnis/busylight"
+publish = false
+
+
+[workspace.dependencies]
+
+# Project internal dependencies
+busylight-core = { path = "./core" }
+async-button-rtic = { path = "./crates/async-button-rtic" }
+
+# Base Cortex-M dependencies
+cortex-m = "0.7.6"
+cortex-m-rt = "0.7.0"
+critical-section = "1.2.0"
+portable-atomic = { version = "1.2.0", default-features = false }
+
+# Panic behavior
+panic-probe = "1.0.0"
+
+# Logging
+defmt = "1.0.1"
+defmt-rtt = "1.0.0"
+log = "0.4.29"
+bbqueue = "0.7.0"
+
+# RTIC
+rtic = { version = "2.2.0", git = "https://github.com/Finomnis/rtic", branch = "fugit_0.4.0" }
+rtic-time = { version = "2.0.1", git = "https://github.com/Finomnis/rtic", branch = "fugit_0.4.0" }
+rtic-monotonics = { version = "2.1.0", git = "https://github.com/Finomnis/rtic", branch = "fugit_0.4.0" }
+rtic-sync = { version = "1.4.0", git = "https://github.com/Finomnis/rtic", branch = "fugit_0.4.0" }
+futures = { version = "0.3.32", default-features = false }
+
+# HAL drivers
+embassy-stm32 = "0.6.0"
+embassy-usb = { version = "0.6.0", default-features = false }
+embassy-usb-dfu = "0.3.0"
+embassy-boot-stm32 = "0.8.0"
+embassy-sync = "0.8.0"
+embassy-time = "0.5.1"
+embassy-futures = "0.1.2"
+embassy-embedded-hal = "0.6.0"
+
+# HAL abstraction definitions
+embedded-hal = "1.0.0"
+embedded-hal-async = "1.0.0"
+embedded-storage = "0.3.1"
+embedded-storage-async = "0.4.1"
+
+# Other
+fugit = "0.4.0"
+cfg-if = "1.0.0"
+static_cell = "2.1.1"
+git-version = "0.3.9"
+
+[profile.release]
+codegen-units = 1
+incremental = false
+lto = true
+
+[profile.release.package.busylight-bootloader]
+opt-level = 'z'

@@ -28,4 +28,9 @@ fn main() {
     // here, we ensure the build script is only re-run when
     // `memory.x` is changed.
     println!("cargo:rerun-if-changed=memory.x");
+
+    println!("cargo:rustc-link-arg-bins=-Tlink.x");
+    // This is needed if your flash or ram addresses are not aligned to 0x10000 in memory.x
+    // See https://github.com/rust-embedded/cortex-m-quickstart/pull/95
+    println!("cargo:rustc-link-arg-bins=--nmagic");
 }

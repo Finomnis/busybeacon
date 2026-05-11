@@ -15,8 +15,11 @@ use embassy_stm32::rcc::mux::Clk48sel;
 use embassy_stm32::{bind_interrupts, peripherals, usb};
 use embassy_sync::blocking_mutex::Mutex;
 use embassy_usb::{Builder, msos};
-use embassy_usb_dfu::consts::DfuAttributes;
-use embassy_usb_dfu::{ResetImmediate, new_state, usb_dfu};
+use embassy_usb_dfu::{
+    ResetImmediate,
+    consts::DfuAttributes,
+    dfu::{new_state, usb_dfu},
+};
 #[cfg(feature = "defmt")]
 use panic_probe as _;
 use static_cell::ConstStaticCell;
@@ -36,16 +39,15 @@ const fn str_to_bcd(s: &str) -> u16 {
     ((value / 10) << 4) | (value % 10)
 }
 
-const USB_BCD_DEVICE_VERSION: u16 =
-    (str_to_bcd(env!("CARGO_PKG_VERSION_MAJOR")) << 8)
-        | str_to_bcd(env!("CARGO_PKG_VERSION_MINOR"));
+const USB_BCD_DEVICE_VERSION: u16 = (str_to_bcd(env!("CARGO_PKG_VERSION_MAJOR")) << 8)
+    | str_to_bcd(env!("CARGO_PKG_VERSION_MINOR"));
 
 // This is a randomly generated GUID to allow clients on Windows to find your device.
 const DEVICE_INTERFACE_GUIDS: &[&str] = &["{1d58b148-7511-410d-84b5-698f7ee0532b}"];
 
 // This is a randomly generated example key.
 #[cfg(feature = "verify")]
-static PUBLIC_SIGNING_KEY: &[u8; 32] = include_bytes!("../secrets/key.pub.raw");
+static PUBLIC_SIGNING_KEY: &[u8; 32] = include_bytes!("../../secrets/key.pub.raw");
 
 static CONFIG_DESCRIPTOR: ConstStaticCell<[u8; 256]> = ConstStaticCell::new([0u8; 256]);
 static BOS_DESCRIPTOR: ConstStaticCell<[u8; 256]> = ConstStaticCell::new([0u8; 256]);
