@@ -13,19 +13,30 @@ See https://rustup.rs/.
 
 ### Further dependencies
 
+- `cargo binstall` - Optional, if not desired replace `binstall` in the other dependencies with `install`
+
+  ```shell
+  cargo install cargo-binstall --locked
+  ```
+
 - `flip-link`
 
   ```shell
-  cargo install flip-link
+  cargo binstall flip-link
   ```
 
 - `cargo objcopy`
 
   ```
   rustup component add llvm-tools
-  cargo install cargo-binutils
+  cargo binstall cargo-binutils
   ```
 
+- `probe-rs`
+
+  ```
+  cargo binstall probe-rs-tools
+  ```
 
 ## Application
 
