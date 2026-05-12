@@ -4,4 +4,15 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+# lib
 hidapi = "2.6.5"
+
+# busylight-tray
+tao = "0.35.2"
+tray-icon = "0.24.0"
+image = { version = "0.25.10", default-features = false, features = ["png"] }
+
+[target."cfg(target_os = \"macos\")".dependencies]
+objc2-core-foundation = { version = "0.3.2", default-features = false, features = [
+    "CFRunLoop",
+] }
