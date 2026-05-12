@@ -1,0 +1,240 @@
+// Copyright 2022-2022 Tauri Programme within The Commons Conservancy
+// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: MIT
+
+#![allow(unused)]
+
+use std::{
+    io::Cursor,
+    sync::mpsc::RecvTimeoutError,
+    time::{Duration, Instant},
+};
+
+use busylight::{BusyLight, BusyLightState};
+use tao::{
+    event::Event,
+    event_loop::{ControlFlow, EventLoopBuilder, EventLoopProxy},
+};
+use tray_icon::{
+    TrayIconBuilder, TrayIconEvent,
+    menu::{AboutMetadata, Menu, MenuEvent, MenuItem, PredefinedMenuItem},
+};
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+enum LedState {
+    Connected(BusyLightState),
+    Disconnected,
+}
+
+#[derive(Debug, Clone)]
+enum UserEvent {
+    TrayIconEvent(tray_icon::TrayIconEvent),
+    MenuEvent(tray_icon::menu::MenuEvent),
+    LedState(LedState),
+}
+
+fn connection_thread(
+    events: std::sync::mpsc::Receiver<BusyLightState>,
+    event_sender: EventLoopProxy<UserEvent>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let mut device = None;
+
+    fn try_connect(device: &mut Option<BusyLight>) -> LedState {
+        if device.is_none() {
+            *device = BusyLight::new().ok();
+        }
+
+        let mut new_state = LedState::Disconnected;
+
+        #[allow(clippy::collapsible_if)]
+        if let Some(connected_device) = &device {
+            if let Ok(state) = connected_device.read_state() {
+                new_state = LedState::Connected(state);
+            }
+        }
+
+        new_state
+    }
+
+    let mut previous_state = LedState::Disconnected;
+    event_sender.send_event(UserEvent::LedState(previous_state))?;
+
+    previous_state = try_connect(&mut device);
+    event_sender.send_event(UserEvent::LedState(previous_state))?;
+
+    loop {
+        let event = events.recv_timeout(Duration::from_millis(100));
+
+        #[allow(clippy::collapsible_if)]
+        match event {
+            Ok(state) => {
+                if let Some(connected_device) = &mut device {
+                    if connected_device.set_state(state).is_err() {
+                        device = None;
+                    }
+                }
+            }
+            Err(RecvTimeoutError::Disconnected) => {
+                return Err(RecvTimeoutError::Disconnected.into());
+            }
+            Err(RecvTimeoutError::Timeout) => {}
+        }
+
+        let new_state = try_connect(&mut device);
+        if new_state != previous_state {
+            previous_state = new_state;
+            event_sender.send_event(UserEvent::LedState(new_state))?;
+        }
+    }
+}
+
+fn main() {
+    let path = concat!(env!("CARGO_MANIFEST_DIR"), "/icon.png");
+
+    let event_loop = EventLoopBuilder::<UserEvent>::with_user_event().build();
+
+    // set a tray event handler that forwards the event and wakes up the event loop
+    let proxy = event_loop.create_proxy();
+    TrayIconEvent::set_event_handler(Some(move |event| {
+        proxy.send_event(UserEvent::TrayIconEvent(event));
+    }));
+
+    // set a menu event handler that forwards the event and wakes up the event loop
+    let proxy = event_loop.create_proxy();
+    MenuEvent::set_event_handler(Some(move |event| {
+        proxy.send_event(UserEvent::MenuEvent(event));
+    }));
+
+    let proxy = event_loop.create_proxy();
+    let (busylight_setter, busylight_receiver) = std::sync::mpsc::sync_channel::<BusyLightState>(1);
+    std::thread::spawn(move || {
+        let _ = connection_thread(busylight_receiver, proxy);
+    });
+
+    let tray_menu = Menu::new();
+
+    let connected_label = MenuItem::new("Disconnected", false, None);
+    let menu_red = MenuItem::new("🔴 Do not disturb", false, None);
+    let menu_yellow = MenuItem::new("🟡 Concentrated", false, None);
+    let menu_green = MenuItem::new("🟢 Casual", false, None);
+    let menu_off = MenuItem::new("⚫ Off", false, None);
+    let menu_quit = MenuItem::new("Quit", true, None);
+
+    tray_menu.append_items(&[
+        &connected_label,
+        &PredefinedMenuItem::separator(),
+        &menu_off,
+        &PredefinedMenuItem::separator(),
+        &menu_red,
+        &menu_yellow,
+        &menu_green,
+        &PredefinedMenuItem::separator(),
+        &menu_quit,
+    ]);
+
+    let mut tray_icon = None;
+
+    let menu_channel = MenuEvent::receiver();
+    let tray_channel = TrayIconEvent::receiver();
+
+    let mut icon = load_icon(CROSS_MARK);
+
+    event_loop.run(move |event, _, control_flow| {
+        *control_flow = ControlFlow::Wait;
+
+        match event {
+            Event::NewEvents(tao::event::StartCause::Init) => {
+                // We create the icon once the event loop is actually running
+                // to prevent issues like https://github.com/tauri-apps/tray-icon/issues/90
+                tray_icon = Some(
+                    TrayIconBuilder::new()
+                        .with_menu(Box::new(tray_menu.clone()))
+                        .with_title("Busylight")
+                        .with_tooltip("BusyLight")
+                        .with_icon(icon.clone())
+                        .build()
+                        .unwrap(),
+                );
+
+                // We have to request a redraw here to have the icon actually show up.
+                // Tao only exposes a redraw method on the Window so we use core-foundation directly.
+                #[cfg(target_os = "macos")]
+                unsafe {
+                    use objc2_core_foundation::{CFRunLoopGetMain, CFRunLoopWakeUp};
+
+                    let rl = CFRunLoopGetMain().unwrap();
+                    CFRunLoopWakeUp(&rl);
+                }
+            }
+
+            Event::UserEvent(UserEvent::TrayIconEvent(event)) => {
+                //println!("{event:?}");
+            }
+
+            Event::UserEvent(UserEvent::MenuEvent(event)) => {
+                //println!("{event:?}");
+
+                if event.id == menu_quit.id() {
+                    tray_icon.take();
+                    *control_flow = ControlFlow::Exit;
+                } else if event.id == menu_red.id() {
+                    busylight_setter.send(BusyLightState::Red).unwrap();
+                } else if event.id == menu_yellow.id() {
+                    busylight_setter.send(BusyLightState::Yellow).unwrap();
+                } else if event.id == menu_green.id() {
+                    busylight_setter.send(BusyLightState::Green).unwrap();
+                } else if event.id == menu_off.id() {
+                    busylight_setter.send(BusyLightState::Off).unwrap();
+                }
+            }
+
+            Event::UserEvent(UserEvent::LedState(state)) => {
+                println!("{state:?}");
+                icon = load_icon(match &state {
+                    LedState::Connected(BusyLightState::Off) => BLACK_CIRCLE,
+                    LedState::Connected(BusyLightState::Green) => GREEN_CIRCLE,
+                    LedState::Connected(BusyLightState::Yellow) => YELLOW_CIRCLE,
+                    LedState::Connected(BusyLightState::Red) => RED_CIRCLE,
+                    LedState::Disconnected => CROSS_MARK,
+                });
+                if let Some(tray_icon) = &mut tray_icon {
+                    tray_icon.set_icon(Some(icon.clone()));
+                }
+                if let LedState::Connected(_) = &state {
+                    connected_label.set_text("Connected");
+                    menu_red.set_enabled(true);
+                    menu_yellow.set_enabled(true);
+                    menu_green.set_enabled(true);
+                    menu_off.set_enabled(true);
+                } else {
+                    connected_label.set_text("Disconnected");
+                    menu_red.set_enabled(false);
+                    menu_yellow.set_enabled(false);
+                    menu_green.set_enabled(false);
+                    menu_off.set_enabled(false);
+                }
+            }
+
+            _ => {}
+        }
+    })
+}
+
+const BLACK_CIRCLE: &[u8] = include_bytes!("../../assets/black-circle.webp");
+const RED_CIRCLE: &[u8] = include_bytes!("../../assets/red-circle.webp");
+const YELLOW_CIRCLE: &[u8] = include_bytes!("../../assets/yellow-circle.webp");
+const GREEN_CIRCLE: &[u8] = include_bytes!("../../assets/green-circle.webp");
+const CROSS_MARK: &[u8] = include_bytes!("../../assets/cross-mark.webp");
+
+fn load_icon(data: &[u8]) -> tray_icon::Icon {
+    let (icon_rgba, icon_width, icon_height) = {
+        let image = image::ImageReader::with_format(Cursor::new(data), image::ImageFormat::WebP)
+            .decode()
+            .expect("Failed to decode icon")
+            .into_rgba8();
+        let (width, height) = image.dimensions();
+        let rgba = image.into_raw();
+        (rgba, width, height)
+    };
+    tray_icon::Icon::from_rgba(icon_rgba, icon_width, icon_height).expect("Failed to open icon")
+}
