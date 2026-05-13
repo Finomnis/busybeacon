@@ -234,6 +234,6 @@ jobs:
         with:
           name: host-tools-windows
           path: |
-            software/target/x86_64-pc-windows-msvc/release/busylight
-            software/target/x86_64-pc-windows-msvc/release/busylight-cli
+            software/target/x86_64-pc-windows-msvc/release/busylight.exe
+            software/target/x86_64-pc-windows-msvc/release/busylight-cli.exe
           if-no-files-found: error
