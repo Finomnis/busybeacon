@@ -198,3 +198,42 @@ jobs:
           RUSTFLAGS: "-C target-feature=-crt-static"
         run: |
           cargo build --release --target x86_64-unknown-linux-musl
+
+      - name: Show ldd
+        working-directory: software
+        run: |
+          ldd target/x86_64-unknown-linux-musl/release/busylight
+          ldd target/x86_64-unknown-linux-musl/release/busylight-cli
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: host-tools-linux
+          path: |
+            software/target/x86_64-unknown-linux-musl/release/busylight
+            software/target/x86_64-unknown-linux-musl/release/busylight-cli
+          if-no-files-found: error
+
+  build_software_windows:
+    name: Host software (windows)
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v6
+
+      - name: Build
+        working-directory: software
+        env:
+          RUSTFLAGS: "-C target-feature=-crt-static"
+        run: |
+          cargo build --release --target x86_64-pc-windows-msvc
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: host-tools-windows
+          path: |
+            software/target/x86_64-pc-windows-msvc/release/busylight
+            software/target/x86_64-pc-windows-msvc/release/busylight-cli
+          if-no-files-found: error
