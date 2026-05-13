@@ -62,7 +62,7 @@ fn connection_thread(
     event_sender.send_event(UserEvent::LedState(previous_state))?;
 
     loop {
-        let event = events.recv_timeout(Duration::from_millis(100));
+        let event = events.recv_timeout(Duration::from_millis(500));
 
         match event {
             Ok(state) => {
