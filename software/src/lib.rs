@@ -14,6 +14,10 @@ pub enum BusyLightError {
     #[error("Device reported an unexpected state")]
     #[diagnostic(code(busylight::unexpected_state))]
     UnexpectedDeviceState,
+
+    #[error("Device responded with an invalid feature report")]
+    #[diagnostic(code(busylight::invalid_feature_report))]
+    InvalidFeatureReport,
 }
 
 pub struct BusyLight {
@@ -85,7 +89,7 @@ impl BusyLight {
         if read_len >= 2 {
             BusyLightState::try_from(buf[1])
         } else {
-            Err(BusyLightError::UnexpectedDeviceState)
+            Err(BusyLightError::InvalidFeatureReport)
         }
     }
 }
