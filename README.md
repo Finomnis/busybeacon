@@ -37,6 +37,26 @@ Intended to be mounted to your monitor and updated whenever your current state c
     - German Amazon: https://amzn.eu/d/06CgZDho
     - 3 LEDs needed per device
 
+
+## Host software
+
+The device can be controlled from the PC using the following programs:
+
+- `busylight` - A tray icon with a menu
+- `busylight-cli` - A command line tool
+
+For Windows, precompiled executables can be found in the releases page.
+
+For Linux / MacOS, the `software` directory contains the source code
+that can be compiled as usual:
+
+```shell
+cd software
+cargo build --release
+```
+
+MacOS is currently untested.
+
 ## Firmware
 
 The newest version can be found in the releases page.
@@ -68,22 +88,3 @@ This is a technical limitation that might get fixed in the future, but it's pure
 ## Build Instructions
 
 Soon.
-
-## Host software
-
-The device can be controlled from the PC using the following programs:
-
-- `busylight` - A tray icon with a menu
-- `busylight-cli` - A command line tool
-
-For Windows, precompiled executables can be found in the releases page.
-
-For Linux / MacOS, the `software` directory contains the source code
-that can be compiled as usual:
-
-```shell
-cd software
-cargo build --release
-```
-
-MacOS is currently untested.
