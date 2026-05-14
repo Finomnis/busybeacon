@@ -6,7 +6,9 @@ use std::{
     time::Duration,
 };
 
+use async_io::Timer;
 use busylight::{BusyLight, BusyLightState};
+use futures::{FutureExt, SinkExt};
 use image::RgbaImage;
 use tao::{
     event::Event,
@@ -31,58 +33,87 @@ enum UserEvent {
 }
 
 async fn connection_thread(
-    events: std::sync::mpsc::Receiver<BusyLightState>,
+    mut events: futures::channel::mpsc::Receiver<BusyLightState>,
     event_sender: EventLoopProxy<UserEvent>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let mut device = None;
 
-    async fn try_connect(mut device: &mut Option<BusyLight>) -> LedState {
+    async fn try_connect(mut device: &mut Option<BusyLight>) -> Option<LedState> {
         if device.is_none() {
             *device = BusyLight::new().await.ok();
-        }
 
-        let mut new_state = LedState::Disconnected;
+            let mut new_state = LedState::Disconnected;
 
-        #[allow(clippy::collapsible_if)]
-        if let Some(connected_device) = &mut device {
-            if let Ok(state) = connected_device.read_state().await {
-                new_state = LedState::Connected(state);
-            } else {
-                *device = None;
+            #[allow(clippy::collapsible_if)]
+            if let Some(connected_device) = &mut device {
+                if let Ok(state) = connected_device.read_state().await {
+                    new_state = LedState::Connected(state);
+                } else {
+                    *device = None;
+                }
             }
-        }
 
-        new_state
+            Some(new_state)
+        } else {
+            None
+        }
     }
 
-    let mut previous_state = LedState::Disconnected;
-    event_sender.send_event(UserEvent::LedState(previous_state))?;
+    let mut current_state = LedState::Disconnected;
+    event_sender.send_event(UserEvent::LedState(current_state))?;
 
-    previous_state = try_connect(&mut device).await;
-    event_sender.send_event(UserEvent::LedState(previous_state))?;
+    if let Some(state) = try_connect(&mut device).await {
+        current_state = state;
+    }
+    event_sender.send_event(UserEvent::LedState(current_state))?;
 
     loop {
-        let event = events.recv_timeout(Duration::from_millis(500));
-
-        match event {
-            Ok(state) =>
-            {
-                #[allow(clippy::collapsible_if)]
-                if let Some(connected_device) = &mut device {
-                    if connected_device.set_state(state).await.is_err() {
-                        device = None;
+        futures_util::select! {
+            event = events.recv() => {
+                match event {
+                    Ok(state) =>
+                    {
+                        #[allow(clippy::collapsible_if)]
+                        if let Some(connected_device) = &mut device {
+                            if connected_device.set_state(state).await.is_err() {
+                                device = None;
+                            }
+                        }
+                    }
+                    Err(_) => {
+                        return Err(RecvTimeoutError::Disconnected.into());
                     }
                 }
             }
-            Err(RecvTimeoutError::Disconnected) => {
-                return Err(RecvTimeoutError::Disconnected.into());
+            new_state = async {
+                if let Some(connected_device) = &mut device {
+                    match connected_device.wait_for_state_change().await{
+                        Ok(new_state) => {
+                            LedState::Connected(new_state)
+                        },
+                        Err(_) => {
+                            device = None;
+                            LedState::Disconnected
+                        },
+                    }
+                } else {
+                    // Wake regularly to reconnect
+                    Timer::after(Duration::from_millis(500)).await;
+                    LedState::Disconnected
+                }
+            }.fuse() => {
+                if new_state != current_state {
+                    current_state = new_state;
+                    event_sender.send_event(UserEvent::LedState(new_state))?;
+                }
             }
-            Err(RecvTimeoutError::Timeout) => {}
-        }
+        };
 
         let new_state = try_connect(&mut device).await;
-        if new_state != previous_state {
-            previous_state = new_state;
+        if let Some(new_state) = new_state
+            && new_state != current_state
+        {
+            current_state = new_state;
             event_sender.send_event(UserEvent::LedState(new_state))?;
         }
     }
@@ -104,7 +135,8 @@ fn main() {
     }));
 
     let proxy = event_loop.create_proxy();
-    let (busylight_setter, busylight_receiver) = std::sync::mpsc::sync_channel::<BusyLightState>(1);
+    let (mut busylight_setter, busylight_receiver) =
+        futures::channel::mpsc::channel::<BusyLightState>(1);
     std::thread::spawn(move || {
         let _ = async_io::block_on(connection_thread(busylight_receiver, proxy));
     });
@@ -174,18 +206,18 @@ fn main() {
                     tray_icon.take();
                     *control_flow = ControlFlow::Exit;
                 } else if event.id == menu_red.id() {
-                    busylight_setter.send(BusyLightState::Red).unwrap();
+                    async_io::block_on(busylight_setter.send(BusyLightState::Red)).unwrap();
                 } else if event.id == menu_yellow.id() {
-                    busylight_setter.send(BusyLightState::Yellow).unwrap();
+                    async_io::block_on(busylight_setter.send(BusyLightState::Yellow)).unwrap();
                 } else if event.id == menu_green.id() {
-                    busylight_setter.send(BusyLightState::Green).unwrap();
+                    async_io::block_on(busylight_setter.send(BusyLightState::Green)).unwrap();
                 } else if event.id == menu_off.id() {
-                    busylight_setter.send(BusyLightState::Off).unwrap();
+                    async_io::block_on(busylight_setter.send(BusyLightState::Off)).unwrap();
                 }
             }
 
             Event::UserEvent(UserEvent::LedState(state)) => {
-                println!("{state:?}");
+                //println!("{state:?}");
                 icon = match &state {
                     LedState::Connected(BusyLightState::Off) => &BLACK_CIRCLE,
                     LedState::Connected(BusyLightState::Green) => &GREEN_CIRCLE,
