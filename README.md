@@ -41,13 +41,14 @@ Intended to be mounted to your monitor and updated whenever your current state c
 
 The newest version can be found in the releases page.
 
-The bootloader has to be installed once from the `.hex` file using `JFlash` or
+The bootloader and firmware have to be installed once from the `.hex` files using `JFlash` or
 
 ```shell
 probe-rs download --binary-format hex busylight.bootloader.hex
+probe-rs download --binary-format hex busylight.hex
 ```
 
-Afterwards, the application can be flashed and updated fia the `.dfu` file:
+Afterwards, the application can be updated via the `.dfu` file:
 
 ```shell
 dfu-util --download busylight.dfu
