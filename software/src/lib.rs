@@ -26,9 +26,9 @@ pub enum BusyLightError {
     #[diagnostic(code(busylight::invalid_feature_report))]
     InvalidFeatureReport,
 
-    #[error("Waiting for an input report timed out")]
-    #[diagnostic(code(busylight::input_report_timeout))]
-    InputReportTimeout,
+    #[error("Device sent an invalid input report")]
+    #[diagnostic(code(busylight::invalid_input_report))]
+    InvalidInputReport,
 }
 
 pub struct BusyLight {
@@ -148,10 +148,14 @@ impl BusyLight {
         let mut buf = [0u8; 2];
         let read_len = self.feature.read_feature_report(&mut buf).await?;
 
-        if read_len >= 2 {
-            BusyLightState::try_from(buf[1])
-        } else {
-            Err(BusyLightError::InvalidFeatureReport)
+        match read_len {
+            // Backends that return report ID 0 + one-byte payload.
+            2 if buf[0] == 0 => BusyLightState::try_from(buf[1]),
+
+            // Backends that returns only the payload for unnumbered reports.
+            1 => BusyLightState::try_from(buf[0]),
+
+            _ => Err(BusyLightError::InvalidFeatureReport),
         }
     }
 
@@ -162,7 +166,7 @@ impl BusyLight {
             .read_input_report(core::slice::from_mut(&mut value))
             .await?;
         if read_len == 0 {
-            Err(BusyLightError::InputReportTimeout)
+            Err(BusyLightError::InvalidInputReport)
         } else {
             BusyLightState::try_from(value)
         }
