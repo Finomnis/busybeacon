@@ -48,10 +48,7 @@ fn main() -> miette::Result<()> {
         Commands::Yellow => device()?.set_state(BusyLightState::Yellow)?,
         Commands::Green => device()?.set_state(BusyLightState::Green)?,
         Commands::Off => device()?.set_state(BusyLightState::Off)?,
-        Commands::Get => {
-            let device = device()?;
-            println!("{:?}", device.read_state()?);
-        }
+        Commands::Get => println!("{:?}", device()?.read_state()?),
         Commands::Listen => {
             let device = device()?;
             println!("{:?}", device.read_state()?);
