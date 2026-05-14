@@ -38,14 +38,14 @@ async fn connection_thread(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let mut device = None;
 
-    async fn try_connect(mut device: &mut Option<BusyLight>) -> Option<LedState> {
+    async fn try_connect(device: &mut Option<BusyLight>) -> Option<LedState> {
         if device.is_none() {
             *device = BusyLight::new().await.ok();
 
             let mut new_state = LedState::Disconnected;
 
             #[allow(clippy::collapsible_if)]
-            if let Some(connected_device) = &mut device {
+            if let Some(connected_device) = device {
                 if let Ok(state) = connected_device.read_state().await {
                     new_state = LedState::Connected(state);
                 } else {
@@ -68,7 +68,7 @@ async fn connection_thread(
     event_sender.send_event(UserEvent::LedState(current_state))?;
 
     loop {
-        futures_util::select! {
+        futures::select! {
             event = events.recv() => {
                 match event {
                     Ok(state) =>

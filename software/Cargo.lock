@@ -190,7 +190,6 @@ dependencies = [
  "async-io",
  "clap",
  "futures",
- "futures-util",
  "image",
  "miette",
  "nusb",

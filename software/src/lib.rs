@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use async_hid::{AsyncHidFeatureHandle, AsyncHidRead, AsyncHidWrite, HidBackend, HidError};
-use futures_util::StreamExt;
+use futures::StreamExt;
 use miette::Diagnostic;
 use thiserror::Error;
 
@@ -142,7 +142,7 @@ impl BusyLight {
             .enumerate()
             .await?
             .filter_map(async |dev| {
-                if dev.vendor_id != VID && dev.product_id != PID {
+                if dev.vendor_id != VID || dev.product_id != PID {
                     return None;
                 }
 
