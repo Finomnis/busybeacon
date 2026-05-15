@@ -186,7 +186,7 @@ impl BusyLight {
             // Backends that return report ID + one-byte payload.
             2 => BusyLightState::try_from(buf[1]),
 
-            // Backends that return only the payload for unnumbered reports.
+            // Backends that return only the one-byte payload
             1 => BusyLightState::try_from(buf[0]),
 
             _ => Err(BusyLightError::InvalidFeatureReport),
@@ -196,7 +196,6 @@ impl BusyLight {
     pub async fn wait_for_state_change(&mut self) -> Result<BusyLightState, BusyLightError> {
         let mut buf = [0u8; 2];
         let read_len = self.reader.read_input_report(&mut buf).await?;
-        println!("{:?} {}", buf, read_len);
 
         if read_len != 2 || buf[0] != 0x03 {
             Err(BusyLightError::InvalidInputReport)

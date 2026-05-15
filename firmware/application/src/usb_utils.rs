@@ -43,7 +43,7 @@ impl HidRequestHandler {
 impl hid::RequestHandler for HidRequestHandler {
     fn get_report(&mut self, id: hid::ReportId, buf: &mut [u8]) -> Option<usize> {
         match id {
-            hid::ReportId::In(2) | hid::ReportId::Feature(2) => {
+            hid::ReportId::Feature(2) => {
                 if buf.is_empty() {
                     return None;
                 }
