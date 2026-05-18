@@ -74,7 +74,7 @@ Afterwards, the application can be updated via the `.dfu` file:
 dfu-util --download busylight.dfu
 ```
 
-If DFU flashing fails, enter bootloader recovery mod by keeping the button pressed while plugging in the device. Then it should react to `dfu-util` again.
+If DFU flashing fails, enter bootloader recovery mod by keeping the button pressed while plugging in the device. It should then react to `dfu-util` again.
 
 **NOTE:** It is normal that `dfu-util` ends with an error message like so:
 ```
