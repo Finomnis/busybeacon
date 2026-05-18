@@ -64,8 +64,8 @@ The newest version can be found in the releases page.
 The bootloader and firmware have to be installed once from the `.hex` files using `JFlash` or
 
 ```shell
-probe-rs download --binary-format hex busylight.bootloader.hex
-probe-rs download --binary-format hex busylight.hex
+probe-rs download --binary-format hex --verify busylight.bootloader.hex
+probe-rs download --binary-format hex --verify busylight.hex
 ```
 
 Afterwards, the application can be updated via the `.dfu` file:
