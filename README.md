@@ -61,7 +61,7 @@ MacOS is currently untested.
 
 The newest version can be found in the releases page.
 
-The bootloader and firmware have to be installed once from the `.hex` files using `JFlash` or
+The bootloader and firmware have to be installed once from the `.hex` files:
 
 ```shell
 probe-rs download --binary-format hex --chip stm32u073cc --verify busylight.bootloader.hex
