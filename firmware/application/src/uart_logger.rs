@@ -85,7 +85,7 @@ impl UartLogHandler {
     pub async fn run(&mut self) {
         let _ = self
             .uart
-            .write(b"\r\n\r\n====================================================\r\n Busylight (git: ")
+            .write(b"\r\n\r\n====================================================\r\n BusyBeacon (git: ")
             .await;
         let _ = self
             .uart

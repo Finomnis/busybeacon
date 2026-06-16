@@ -41,38 +41,38 @@ jobs:
 
       - name: Build
         working-directory: firmware
-        run: cargo build -p busylight-application --release
+        run: cargo build -p busybeacon-application --release
 
       - name: Create firmware bin file
         working-directory: firmware
         run: |
-          cargo objcopy -p busylight-application --release -- -O binary target/busylight.${WORKSPACE_GIT_DESCRIBE}.dfu
+          cargo objcopy -p busybeacon-application --release -- -O binary target/busybeacon.${WORKSPACE_GIT_DESCRIBE}.dfu
 
       - name: Create firmware hex file
         working-directory: firmware
         run: |
-          cargo objcopy -p busylight-application --release -- -O ihex target/busylight.${WORKSPACE_GIT_DESCRIBE}.hex
+          cargo objcopy -p busybeacon-application --release -- -O ihex target/busybeacon.${WORKSPACE_GIT_DESCRIBE}.hex
 
       #   - name: Sign firmware file
       #     working-directory: firmware/application
       #     run: |
-      #       shasum -a 512 -b target/busylight.bin | head -c128 | xxd -p -r > target/message.txt
+      #       shasum -a 512 -b target/busybeacon.bin | head -c128 | xxd -p -r > target/message.txt
       #       signify-openbsd -S -s firmware/secrets/key.sec -m target/message.txt -x target/message.txt.sig
-      #       cp target/busylight.bin target/busylight.${WORKSPACE_GIT_DESCRIBE}.dfu
-      #       tail -n1 target/message.txt.sig | base64 -d -i - | dd ibs=10 skip=1 >> target/busylight.${WORKSPACE_GIT_DESCRIBE}.dfu
-      #       dfu-suffix --vid 1209 --pid d9d0 --add "target/busylight.${WORKSPACE_GIT_DESCRIBE}.dfu"
-      #       cp target/busylight.hex target/busylight.${WORKSPACE_GIT_DESCRIBE}.hex
+      #       cp target/busybeacon.bin target/busybeacon.${WORKSPACE_GIT_DESCRIBE}.dfu
+      #       tail -n1 target/message.txt.sig | base64 -d -i - | dd ibs=10 skip=1 >> target/busybeacon.${WORKSPACE_GIT_DESCRIBE}.dfu
+      #       dfu-suffix --vid 1209 --pid d9d0 --add "target/busybeacon.${WORKSPACE_GIT_DESCRIBE}.dfu"
+      #       cp target/busybeacon.hex target/busybeacon.${WORKSPACE_GIT_DESCRIBE}.hex
 
       - name: Post-process firmware files
         working-directory: firmware
         run: |
-          dfu-suffix --vid 1209 --pid d9d0 --add "target/busylight.${WORKSPACE_GIT_DESCRIBE}.dfu"
+          dfu-suffix --vid 1209 --pid d9d0 --add "target/busybeacon.${WORKSPACE_GIT_DESCRIBE}.dfu"
 
       - name: Sanity checks
         working-directory: firmware
         run: |
-          export DFU_SIZE=$(stat -c%s "target/busylight.${WORKSPACE_GIT_DESCRIBE}.dfu")
-          export HEX_SIZE=$(stat -c%s "target/busylight.${WORKSPACE_GIT_DESCRIBE}.hex")
+          export DFU_SIZE=$(stat -c%s "target/busybeacon.${WORKSPACE_GIT_DESCRIBE}.dfu")
+          export HEX_SIZE=$(stat -c%s "target/busybeacon.${WORKSPACE_GIT_DESCRIBE}.hex")
           echo "DFU: $DFU_SIZE"
           echo "HEX: $HEX_SIZE"
           (( $DFU_SIZE > 10000 ))
@@ -81,14 +81,14 @@ jobs:
       - name: Upload firmware dfu file as artifact
         uses: actions/upload-artifact@v7
         with:
-          path: firmware/target/busylight.${{env.WORKSPACE_GIT_DESCRIBE}}.dfu
+          path: firmware/target/busybeacon.${{env.WORKSPACE_GIT_DESCRIBE}}.dfu
           if-no-files-found: error
           archive: false
 
       - name: Upload firmware hex file as artifact
         uses: actions/upload-artifact@v7
         with:
-          path: firmware/target/busylight.${{env.WORKSPACE_GIT_DESCRIBE}}.hex
+          path: firmware/target/busybeacon.${{env.WORKSPACE_GIT_DESCRIBE}}.hex
           if-no-files-found: error
           archive: false
 
@@ -137,19 +137,19 @@ jobs:
       - name: Build
         working-directory: firmware
         run: |
-          cargo objcopy -p busylight-bootloader --release -- -O ihex target/busylight.bootloader.${WORKSPACE_GIT_DESCRIBE}.hex
+          cargo objcopy -p busybeacon-bootloader --release -- -O ihex target/busybeacon.bootloader.${WORKSPACE_GIT_DESCRIBE}.hex
 
       - name: Sanity checks
         working-directory: firmware
         run: |
-          export HEX_SIZE=$(stat -c%s "target/busylight.bootloader.${WORKSPACE_GIT_DESCRIBE}.hex")
+          export HEX_SIZE=$(stat -c%s "target/busybeacon.bootloader.${WORKSPACE_GIT_DESCRIBE}.hex")
           echo $HEX_SIZE
           (( $HEX_SIZE > 10000 ))
 
       - name: Upload firmware hex file as artifact
         uses: actions/upload-artifact@v7
         with:
-          path: firmware/target/busylight.bootloader.${{env.WORKSPACE_GIT_DESCRIBE}}.hex
+          path: firmware/target/busybeacon.bootloader.${{env.WORKSPACE_GIT_DESCRIBE}}.hex
           if-no-files-found: error
           archive: false
 
@@ -192,6 +192,6 @@ jobs:
         with:
           name: host-tools-windows
           path: |
-            software/target/x86_64-pc-windows-msvc/release/busylight.exe
-            software/target/x86_64-pc-windows-msvc/release/busylight-cli.exe
+            software/target/x86_64-pc-windows-msvc/release/busybeacon.exe
+            software/target/x86_64-pc-windows-msvc/release/busybeacon-cli.exe
           if-no-files-found: error

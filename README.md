@@ -1,9 +1,9 @@
-# Busylight
+# BusyBeacon
 
 <p>
-<img src=".media/busylight_green.webp" alt="Green" width="270">
-<img src=".media/busylight_yellow.webp" alt="Green" width="270">
-<img src=".media/busylight_red.webp" alt="Green" width="270">
+<img src=".media/busybeacon_green.webp" alt="Green" width="270">
+<img src=".media/busybeacon_yellow.webp" alt="Green" width="270">
+<img src=".media/busybeacon_red.webp" alt="Green" width="270">
 </p>
 
 An indicator that shows coworkers if you are busy.
@@ -42,8 +42,8 @@ Intended to be mounted to your monitor and updated whenever your current state c
 
 The device can be controlled from the PC using the following programs:
 
-- `busylight` - A tray icon with a menu
-- `busylight-cli` - A command line tool
+- `busybeacon` - A tray icon with a menu
+- `busybeacon-cli` - A command line tool
 
 For Windows, precompiled executables can be found in the releases page.
 
@@ -64,14 +64,14 @@ The newest version can be found in the releases page.
 The bootloader and firmware have to be installed once from the `.hex` files:
 
 ```shell
-probe-rs download --binary-format hex --chip stm32u073cc --verify busylight.bootloader.hex
-probe-rs download --binary-format hex --chip stm32u073cc --verify busylight.hex
+probe-rs download --binary-format hex --chip stm32u073cc --verify busybeacon.bootloader.hex
+probe-rs download --binary-format hex --chip stm32u073cc --verify busybeacon.hex
 ```
 
 Afterwards, the application can be updated via the `.dfu` file:
 
 ```shell
-dfu-util --download busylight.dfu
+dfu-util --download busybeacon.dfu
 ```
 
 If DFU flashing fails, enter bootloader recovery mode by keeping the button pressed while plugging in the device. It should then react to `dfu-util` again.

@@ -36,8 +36,8 @@ impl LedController {
 
     async fn set_led(&mut self, color: (u8, u8, u8)) {
         log::info!("Color: {:?}", color);
-        let mut data = [0u8; busylight_core::neopixel::buffer_size(NUM_LEDS)];
-        let data = busylight_core::neopixel::fill_with_color(&mut data, color);
+        let mut data = [0u8; busybeacon_core::neopixel::buffer_size(NUM_LEDS)];
+        let data = busybeacon_core::neopixel::fill_with_color(&mut data, color);
         self.spi.write(data).await.unwrap();
     }
 

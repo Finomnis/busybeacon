@@ -7,7 +7,7 @@ use std::{
 };
 
 use async_io::Timer;
-use busylight::{BusyLight, BusyLightState};
+use busybeacon::{BusyBeacon, BusyBeaconState};
 use futures::{FutureExt, SinkExt};
 use image::RgbaImage;
 use tao::{
@@ -21,7 +21,7 @@ use tray_icon::{
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 enum LedState {
-    Connected(BusyLightState),
+    Connected(BusyBeaconState),
     Disconnected,
 }
 
@@ -33,14 +33,14 @@ enum UserEvent {
 }
 
 async fn connection_thread(
-    mut events: futures::channel::mpsc::Receiver<BusyLightState>,
+    mut events: futures::channel::mpsc::Receiver<BusyBeaconState>,
     event_sender: EventLoopProxy<UserEvent>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let mut device = None;
 
-    async fn try_connect(device: &mut Option<BusyLight>) -> Option<LedState> {
+    async fn try_connect(device: &mut Option<BusyBeacon>) -> Option<LedState> {
         if device.is_none() {
-            *device = BusyLight::new().await.ok();
+            *device = BusyBeacon::new().await.ok();
 
             let mut new_state = LedState::Disconnected;
 
@@ -135,10 +135,10 @@ fn main() {
     }));
 
     let proxy = event_loop.create_proxy();
-    let (mut busylight_setter, busylight_receiver) =
-        futures::channel::mpsc::channel::<BusyLightState>(1);
+    let (mut busybeacon_setter, busybeacon_receiver) =
+        futures::channel::mpsc::channel::<BusyBeaconState>(1);
     std::thread::spawn(move || {
-        let _ = async_io::block_on(connection_thread(busylight_receiver, proxy));
+        let _ = async_io::block_on(connection_thread(busybeacon_receiver, proxy));
     });
 
     let tray_menu = Menu::new();
@@ -177,8 +177,8 @@ fn main() {
                 tray_icon = Some(
                     TrayIconBuilder::new()
                         .with_menu(Box::new(tray_menu.clone()))
-                        .with_title("Busylight")
-                        .with_tooltip("BusyLight")
+                        .with_title("BusyBeacon")
+                        .with_tooltip("BusyBeacon")
                         .with_icon(load_icon(icon))
                         .build()
                         .unwrap(),
@@ -206,23 +206,23 @@ fn main() {
                     tray_icon.take();
                     *control_flow = ControlFlow::Exit;
                 } else if event.id == menu_red.id() {
-                    async_io::block_on(busylight_setter.send(BusyLightState::Red)).unwrap();
+                    async_io::block_on(busybeacon_setter.send(BusyBeaconState::Red)).unwrap();
                 } else if event.id == menu_yellow.id() {
-                    async_io::block_on(busylight_setter.send(BusyLightState::Yellow)).unwrap();
+                    async_io::block_on(busybeacon_setter.send(BusyBeaconState::Yellow)).unwrap();
                 } else if event.id == menu_green.id() {
-                    async_io::block_on(busylight_setter.send(BusyLightState::Green)).unwrap();
+                    async_io::block_on(busybeacon_setter.send(BusyBeaconState::Green)).unwrap();
                 } else if event.id == menu_off.id() {
-                    async_io::block_on(busylight_setter.send(BusyLightState::Off)).unwrap();
+                    async_io::block_on(busybeacon_setter.send(BusyBeaconState::Off)).unwrap();
                 }
             }
 
             Event::UserEvent(UserEvent::LedState(state)) => {
                 //println!("{state:?}");
                 icon = match &state {
-                    LedState::Connected(BusyLightState::Off) => &BLACK_CIRCLE,
-                    LedState::Connected(BusyLightState::Green) => &GREEN_CIRCLE,
-                    LedState::Connected(BusyLightState::Yellow) => &YELLOW_CIRCLE,
-                    LedState::Connected(BusyLightState::Red) => &RED_CIRCLE,
+                    LedState::Connected(BusyBeaconState::Off) => &BLACK_CIRCLE,
+                    LedState::Connected(BusyBeaconState::Green) => &GREEN_CIRCLE,
+                    LedState::Connected(BusyBeaconState::Yellow) => &YELLOW_CIRCLE,
+                    LedState::Connected(BusyBeaconState::Red) => &RED_CIRCLE,
                     LedState::Disconnected => &CROSS_MARK,
                 };
                 if let Some(tray_icon) = &mut tray_icon {

@@ -8,14 +8,14 @@ version = "0.5.0"
 edition = "2024"
 rust-version = "1.94"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/Finomnis/busylight"
+repository = "https://github.com/Finomnis/busybeacon"
 publish = false
 
 
 [workspace.dependencies]
 
 # Project internal dependencies
-busylight-core = { path = "./core" }
+busybeacon-core = { path = "./core" }
 async-button-rtic = { path = "./crates/async-button-rtic" }
 
 # Base Cortex-M dependencies
@@ -67,5 +67,5 @@ codegen-units = 1
 incremental = false
 lto = true
 
-[profile.release.package.busylight-bootloader]
+[profile.release.package.busybeacon-bootloader]
 opt-level = 'z'
