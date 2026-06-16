@@ -110,12 +110,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "busylight-application"
+name = "busybeacon-application"
 version = "0.5.0"
 dependencies = [
  "async-button-rtic",
  "bbqueue",
- "busylight-core",
+ "busybeacon-core",
  "cortex-m",
  "cortex-m-rt",
  "embassy-boot-stm32",
@@ -139,7 +139,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "busylight-bootloader"
+name = "busybeacon-bootloader"
 version = "0.5.0"
 dependencies = [
  "cfg-if",
@@ -161,7 +161,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "busylight-core"
+name = "busybeacon-core"
 version = "0.5.0"
 
 [[package]]

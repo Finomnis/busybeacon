@@ -14,7 +14,7 @@ program = "flash --chip stm32u073cc"
 test-host = [
     "test",
     "--workspace",
-    "--exclude=busylight-application",
-    "--exclude=busylight-bootloader",
+    "--exclude=busybeacon-application",
+    "--exclude=busybeacon-bootloader",
     "--target=host-tuple",
 ]

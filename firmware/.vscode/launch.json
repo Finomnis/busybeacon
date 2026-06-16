@@ -18,7 +18,7 @@
 //             "coreConfigs": [
 //                 {
 //                     "coreIndex": 0,
-//                     "programBinary": "./target/thumbv6m-none-eabi/debug/busylight"
+//                     "programBinary": "./target/thumbv6m-none-eabi/debug/busybeacon"
 //                 }
 //             ]
 //         },
@@ -31,7 +31,7 @@
 //             "coreConfigs": [
 //                 {
 //                     "coreIndex": 0,
-//                     "programBinary": "./target/thumbv6m-none-eabi/debug/busylight"
+//                     "programBinary": "./target/thumbv6m-none-eabi/debug/busybeacon"
 //                 }
 //             ]
 //         }
@@ -57,7 +57,7 @@
 //             "coreConfigs": [
 //                 {
 //                     "coreIndex": 0,
-//                     "programBinary": "./target/thumbv6m-none-eabi/release/busylight-bootloader"
+//                     "programBinary": "./target/thumbv6m-none-eabi/release/busybeacon-bootloader"
 //                 }
 //             ]
 //         },
@@ -70,7 +70,7 @@
 //             "coreConfigs": [
 //                 {
 //                     "coreIndex": 0,
-//                     "programBinary": "./target/thumbv6m-none-eabi/release/busylight-bootloader"
+//                     "programBinary": "./target/thumbv6m-none-eabi/release/busybeacon-bootloader"
 //                 }
 //             ]
 //         }

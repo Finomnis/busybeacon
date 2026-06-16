@@ -1,4 +1,4 @@
-# Busylight Firmware
+# BusyBeacon Firmware
 
 ## Datasheets:
 
@@ -88,19 +88,19 @@ unable to read DFU status after completion (LIBUSB_ERROR_PIPE)
 ### Build
 
 ```shell
-cargo build -p busylight-bootloader --release
+cargo build -p busybeacon-bootloader --release
 ```
 
 ### Build and flash
 
 ```shell
-cargo program -p busylight-bootloader --release
+cargo program -p busybeacon-bootloader --release
 ```
 
 ### Generate hex
 
 ```shell
-cargo objcopy -p busylight-bootloader --release -- -O ihex bootloader.hex
+cargo objcopy -p busybeacon-bootloader --release -- -O ihex bootloader.hex
 
 # To flash:
 probe-rs download --binary-format hex --chip stm32u073cc bootloader.hex

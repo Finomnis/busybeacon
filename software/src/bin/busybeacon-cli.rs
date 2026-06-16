@@ -1,7 +1,7 @@
-use busylight::{BusyLight, BusyLightError, BusyLightState};
+use busybeacon::{BusyBeacon, BusyBeaconError, BusyBeaconState};
 use clap::{Parser, Subcommand};
 
-/// Controls the BusyLight
+/// Controls the BusyBeacon
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
 struct Cli {
@@ -34,20 +34,20 @@ enum Commands {
 async fn async_main() -> miette::Result<()> {
     let cli = Cli::parse();
 
-    let device = async || -> Result<BusyLight, BusyLightError> {
+    let device = async || -> Result<BusyBeacon, BusyBeaconError> {
         if let Some(serial) = cli.serial {
-            BusyLight::new_with_serial(serial).await
+            BusyBeacon::new_with_serial(serial).await
         } else {
-            BusyLight::new().await
+            BusyBeacon::new().await
         }
     };
 
     let command = cli.command.unwrap_or(Commands::List);
     match command {
-        Commands::Red => device().await?.set_state(BusyLightState::Red).await?,
-        Commands::Yellow => device().await?.set_state(BusyLightState::Yellow).await?,
-        Commands::Green => device().await?.set_state(BusyLightState::Green).await?,
-        Commands::Off => device().await?.set_state(BusyLightState::Off).await?,
+        Commands::Red => device().await?.set_state(BusyBeaconState::Red).await?,
+        Commands::Yellow => device().await?.set_state(BusyBeaconState::Yellow).await?,
+        Commands::Green => device().await?.set_state(BusyBeaconState::Green).await?,
+        Commands::Off => device().await?.set_state(BusyBeaconState::Off).await?,
         Commands::Get => println!("{:?}", device().await?.read_state().await?),
         Commands::Listen => {
             let mut device = device().await?;
@@ -57,8 +57,8 @@ async fn async_main() -> miette::Result<()> {
             }
         }
         Commands::List => {
-            let devices = BusyLight::list_devices().await?;
-            println!("Available BusyLights:");
+            let devices = BusyBeacon::list_devices().await?;
+            println!("Available BusyBeacons:");
             println!();
             if devices.is_empty() {
                 println!("   -- none --");

@@ -198,7 +198,7 @@ mod app {
 
         let mut config = embassy_usb::Config::new(0x1209, 0xd9d0);
         config.manufacturer = Some("Finomnis");
-        config.product = Some("BusyLight");
+        config.product = Some("BusyBeacon");
         config.serial_number = Some(embassy_stm32::uid::uid_hex());
         config.device_release = USB_BCD_DEVICE_VERSION;
 

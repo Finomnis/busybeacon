@@ -1,5 +1,5 @@
 [package]
-name = "busylight-bootloader"
+name = "busybeacon-bootloader"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

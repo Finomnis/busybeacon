@@ -1,5 +1,5 @@
 [package]
-name = "busylight-application"
+name = "busybeacon-application"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -9,14 +9,14 @@ publish.workspace = true
 
 
 [[bin]]
-name = "busylight"
+name = "busybeacon"
 path = "src/main.rs"
 test = false
 
 
 [dependencies]
 # Project internal dependencies
-busylight-core.workspace = true
+busybeacon-core.workspace = true
 async-button-rtic.workspace = true
 
 # Base Cortex-M dependencies
