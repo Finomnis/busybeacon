@@ -32,7 +32,6 @@ Intended to be mounted to your monitor and updated whenever your current state c
 - [Custom PCB](https://oshwlab.com/finomnis/busylight)
     - Orderable on JLCPCB for ~60 Euros / 10 PCBs
 - 3D Printed Case
-    - coming soon
 - LEDs: BTF-LIGHTING 144LEDs/m WS2812B
     - German Amazon: https://amzn.eu/d/06CgZDho
     - 3 LEDs needed per device
@@ -87,4 +86,19 @@ This is a technical limitation that might get fixed in the future, but it's pure
 
 ## Build Instructions
 
-Soon.
+1. Download the relevant files from the [Releases page](https://github.com/Finomnis/busybeacon/releases).
+2. Flash the PCB with the latest bootloader & firmware.
+   - This requires a TC2050 adapter and a suitable probe.
+   - For more information, see [firmware](https://github.com/Finomnis/busybeacon/tree/main/firmware).
+3. Print the case (top and bot)
+4. Cut 3 LEDs from your BTF-LIGHTING 144LEDs/m WS2812B strip
+5. Connect the PCB and the LEDs with three wires
+6. Insert the PCB into the bottom case and glue the LED strip on the little
+   shelf that will face the ball
+7. Cut a hole in your tennis ball that fits the three LEDs
+8. Glue the Ball on the Top case
+9. Slide the case together
+
+Then, plug the device into a USB-C port and you will see the ball light up green.
+
+You can now control the ball using the button as described in the `Controls` section, or you can install the tray icon app to control it via a tray icon of your PC.
