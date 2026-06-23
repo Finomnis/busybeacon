@@ -94,7 +94,7 @@ This is a technical limitation that might get fixed in the future, but it's pure
 4. Cut 3 LEDs from your BTF-LIGHTING 144LEDs/m WS2812B strip
 5. Connect the PCB and the LEDs with three wires
 6. Insert the PCB into the bottom case and glue the LED strip on the little
-   shelf that will faces the ball
+   shelf that will face the ball
 7. Cut a hole in your tennis ball that fits the three LEDs
 8. Glue the Ball on the Top case
 9. Slide the case together
