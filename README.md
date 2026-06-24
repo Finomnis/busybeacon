@@ -46,6 +46,9 @@ The device can be controlled from the PC using the following programs:
 
 For Windows, precompiled executables can be found in the releases page.
 
+- Copy `busybeacon.exe` into `%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup` to start it automatically on bootup.
+- Once it runs, right click on taskbar -> `Taskbar settings` -> `Other system tray icons` -> `busybeacon.exe` -> `On` to show it in the taskbar
+
 For Linux / MacOS, the `software` directory contains the source code
 that can be compiled as usual:
 
