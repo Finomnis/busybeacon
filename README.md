@@ -44,7 +44,7 @@ The device can be controlled from the PC using the following programs:
 - `busybeacon` - A tray icon with a menu
 - `busybeacon-cli` - A command line tool
 
-For Windows, precompiled executables can be found in the releases page.
+For Windows, precompiled executables can be found in the [releases page](https://github.com/Finomnis/busybeacon/releases).
 
 - Copy `busybeacon.exe` into `%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup` to start it automatically on bootup.
 - Once it runs, right click on taskbar -> `Taskbar settings` -> `Other system tray icons` -> `busybeacon.exe` -> `On` to show it in the taskbar
@@ -61,7 +61,7 @@ MacOS is currently untested.
 
 ## Firmware
 
-The newest version can be found in the releases page.
+The newest version can be found in the [releases page](https://github.com/Finomnis/busybeacon/releases).
 
 The bootloader and firmware have to be installed once from the `.hex` files:
 
@@ -89,10 +89,10 @@ This is a technical limitation that might get fixed in the future, but it's pure
 
 ## Build Instructions
 
-1. Download the relevant files from the [Releases page](https://github.com/Finomnis/busybeacon/releases).
+1. Download the relevant files from the [releases page](https://github.com/Finomnis/busybeacon/releases).
 2. Flash the PCB with the latest bootloader & firmware.
    - This requires a TC2050 adapter and a suitable probe.
-   - For more information, see [firmware](https://github.com/Finomnis/busybeacon/tree/main/firmware).
+   - For more information, see `Firmware` in this readme.
 3. Print the case (top and bot)
 4. Cut 3 LEDs from your BTF-LIGHTING 144LEDs/m WS2812B strip
 5. Connect the PCB and the LEDs with three wires
